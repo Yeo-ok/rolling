@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>롤링페이퍼 - 1차 프로토타입 (단일 파일)</title>
+  <style>
+    :root{
+      --bg:#0f1226;
+      --card:#171a35;
+      --muted:#9aa3b2;
+      --text:#e9ecf1;
+      --accent:#5f7cff;
+      --accent-2:#a8ff60;
+      --danger:#ff5f7a;
+      --warning:#ffc15f;
+      --ok:#35d49a;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:14px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      background: radial-gradient(1200px 800px at 20% -10%, #1a1f45 0%, transparent 60%),
+                  radial-gradient(800px 600px at 90% 10%, #1a2b45 0%, transparent 60%),
+                  var(--bg);
+      color:var(--text);
+    }
+    a{color:var(--accent)}
+    .wrap{max-width:1100px; margin:0 auto; padding:24px}
+    header{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      margin-bottom:16px;
+    }
+    .logo{display:flex; gap:10px; align-items:center}
+    .logo i{width:36px; height:36px; background:linear-gradient(135deg,var(--accent),#9a7cff); border-radius:10px; box-shadow:var(--shadow)}
+    .logo b{font-weight:800; letter-spacing:.2px}
+    .tag{padding:6px 10px; border:1px solid #2a2f56; border-radius:999px; color:var(--muted); font-size:12px}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.02), transparent 60%), var(--card);
+      border:1px solid #2a2f56;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+    .login{
+      max-width:520px; margin:10vh auto 0; padding:24px;
+    }
+    .row{display:flex; gap:10px; align-items:center}
+    input[type=text], textarea{
+      width:100%; padding:12px 14px; border-radius:12px;
+      border:1px solid #2a2f56; background:#0f1330; color:var(--text);
+      outline:none; transition:.15s;
+    }
+    input[type=text]:focus, textarea:focus{border-color:var(--accent)}
+    textarea{min-height:120px; resize:vertical}
+    button{
+      border:none; border-radius:12px; padding:10px 14px; cursor:pointer; font-weight:700;
+      background:var(--accent); color:white; box-shadow:var(--shadow); transition:.12s;
+    }
+    button.outline{background:transparent; border:1px solid #334; color:var(--text)}
+    button.ghost{background:transparent; color:var(--muted); box-shadow:none}
+    button.danger{background:var(--danger)}
+    button.ok{background:var(--ok); color:#072417}
+    button:disabled{opacity:.5; cursor:not-allowed}
+    .grid{
+      display:grid; gap:14px; grid-template-columns: repeat( auto-fill, minmax(230px, 1fr) );
+    }
+    .person{
+      padding:16px; display:flex; flex-direction:column; gap:10px; position:relative; overflow:hidden;
+    }
+    .counts{display:flex; gap:10px; color:var(--muted); font-size:12px}
+    .counts span{padding:4px 8px; border-radius:999px; background:#0f1330; border:1px solid #2a2f56}
+    .pill{
+      position:absolute; right:10px; top:10px; font-size:11px; color:#c5cbe3;
+      padding:4px 8px; border-radius:999px; background:#0c0f24; border:1px solid #283056
+    }
+    .toolbar{display:flex; gap:8px; flex-wrap:wrap}
+    .hidden{display:none !important}
+    .muted{color:var(--muted)}
+    .center{display:flex; align-items:center; justify-content:center; text-align:center}
+    .section{padding:16px}
+    .h{font-size:18px; font-weight:800}
+    .sub{font-size:12px; color:var(--muted)}
+    .list{display:flex; flex-direction:column; gap:8px}
+    .item{padding:12px; border:1px dashed #2a2f56; border-radius:12px; background:#0f1330}
+    .item b{display:block; margin-bottom:6px}
+    .topbar{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 16px; border-bottom:1px solid #2a2f56}
+    .content{padding:16px}
+    .search{display:flex; gap:10px}
+    .footer{margin-top:16px; display:flex; gap:8px; justify-content:flex-end; padding:12px 16px; border-top:1px solid #2a2f56}
+    dialog{
+      border:none; padding:0; background:transparent;
+    }
+    dialog::backdrop{background:rgba(7,8,18,.6); backdrop-filter:saturate(120%) blur(2px)}
+    .modal{width:min(680px, 92vw)}
+    .k{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px}
+    .note{padding:10px 12px; background:#091029; border:1px solid #29315c; border-radius:12px; color:#b7c0d9}
+    .toast{
+      position: fixed; left:50%; bottom: 22px; transform: translateX(-50%) translateY(20px);
+      transition:.25s; opacity:0; background:#0c112a; color:var(--text); border:1px solid #283056;
+      padding:10px 14px; border-radius:12px; box-shadow: var(--shadow); z-index:99;
+    }
+    .toast.show{opacity:1; transform: translateX(-50%) translateY(0)}
+    .role-badge{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid #2a2f56; color:#cbd2ee}
+    .online-dot{width:8px; height:8px; border-radius:50%; background:var(--ok); display:inline-block; margin-right:6px}
+    .warn{color:var(--warning)}
+    .hl{color:var(--accent-2); font-weight:800}
+  </style>
+
+  <!--
+  "롤링페이퍼" 1차 결과물 (단일 HTML 파일)
+  - 기본은 브라우저 로컬 모드(localStorage + BroadcastChannel)로 동작 → 같은 브라우저 여러 탭에서 동시 접속 테스트 가능
+  - 실사용(여러 기기 동시 접속)하려면 아래 FIREBASE_CONFIG만 채우면 실시간 백엔드(Firestore) 모드로 자동 전환됩니다.
+  - 예약 이름: "Master"(관리자, 익명 열람) / "mMaster"(최대관리자, 작성자 표시 포함 열람)
+
+  ⚠️ 보안/권한: 이 파일은 프론트엔드만 포함합니다. Firestore 연결 시 관리자 권한은 보안 규칙에서 통제하세요.
+  예시 규칙은 파일 하단 주석 참고.
+  -->
+
+  <!-- Firebase SDK (선택 사항: Firestore 사용 시 필요) -->
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">
+        <i></i>
+        <div>
+          <div><b>롤링페이퍼</b> <span class="tag">1차 프로토타입</span></div>
+          <div class="sub">이름으로 접속 · 다른 사람에게만 작성 · 내 글만 열람/수정/삭제 · 관리자 열람 모드</div>
+        </div>
+      </div>
+      <div id="statusArea" class="sub"></div>
+    </header>
+
+    <!-- 로그인 카드 -->
+    <section id="login" class="card login">
+      <div class="h">입장하기</div>
+      <div class="sub" style="margin-top:6px">본인 이름을 입력해 주세요. (특수: <span class="role-badge">Master</span>, <span class="role-badge">mMaster</span>)</div>
+      <div class="section">
+        <div class="row">
+          <input id="nameInput" type="text" placeholder="예) 홍길동 / Master / mMaster" maxlength="24" />
+          <button id="enterBtn">입장</button>
+        </div>
+        <div class="note" style="margin-top:12px">
+          • 같은 이름이 이미 사용 중이면 다른 표기로 접속해 주세요.<br/>
+          • 데모는 <b>로컬 모드</b>로 실행됩니다. 여러 기기 동시 사용은 <b>Firebase 설정</b>을 추가하세요 (아래 설정).<br/>
+        </div>
+        <details style="margin-top:12px">
+          <summary class="muted">Firebase 연결(선택) – 이 파일 안에서 바로 설정</summary>
+          <div class="k" style="margin-top:8px">
+            &lt;script&gt;<br/>
+            &nbsp;&nbsp;window.FIREBASE_CONFIG = {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;// TODO: 아래를 본인 프로젝트 값으로 교체하세요<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;apiKey: "YOUR_API_KEY",<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;authDomain: "YOUR_PROJECT.firebaseapp.com",<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;projectId: "YOUR_PROJECT_ID",<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;storageBucket: "YOUR_PROJECT.appspot.com",<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;messagingSenderId: "SENDER_ID",<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;appId: "APP_ID"<br/>
+            &nbsp;&nbsp;};<br/>
+            &lt;/script&gt;
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- 메인 화면 -->
+    <section id="main" class="hidden">
+      <div class="card section">
+        <div class="topbar">
+          <div>
+            <span id="hello"></span>
+            <span id="roleBadge" class="role-badge"></span>
+          </div>
+          <div class="search">
+            <input id="filterInput" type="text" placeholder="이름 검색…" />
+            <button id="logoutBtn" class="outline">로그아웃</button>
+          </div>
+        </div>
+        <div class="content">
+          <div id="peopleGrid" class="grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 모달: 글쓰기/수정 -->
+    <dialog id="writeDialog">
+      <div class="card modal">
+        <div class="topbar">
+          <div class="h"><span id="writeTitle">롤링페이퍼 작성</span></div>
+          <button class="ghost" onclick="closeWrite()">닫기</button>
+        </div>
+        <div class="content">
+          <div class="sub muted" style="margin-bottom:8px"><span id="writeTargetLabel"></span></div>
+          <input id="paperTitle" type="text" placeholder="제목" />
+          <div style="height:10px"></div>
+          <textarea id="paperContent" placeholder="내용"></textarea>
+          <div class="note" style="margin-top:10px">
+            <b>안내</b> · 상대방에게 남기는 메시지입니다. 제목과 내용만 저장됩니다.
+          </div>
+        </div>
+        <div class="footer">
+          <button class="outline" onclick="closeWrite()">취소</button>
+          <button id="savePaperBtn">저장</button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- 모달: 내 글 관리(수정/삭제) -->
+    <dialog id="manageDialog">
+      <div class="card modal">
+        <div class="topbar">
+          <div class="h">내 글 관리</div>
+          <button class="ghost" onclick="closeManage()">닫기</button>
+        </div>
+        <div class="content">
+          <div class="sub muted" style="margin-bottom:10px"><span id="manageTargetLabel"></span>에 대해 내가 쓴 글 목록</div>
+          <div id="myList" class="list"></div>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- 모달: 관리자 열람 -->
+    <dialog id="adminDialog">
+      <div class="card modal">
+        <div class="topbar">
+          <div class="h"><span id="adminTargetName"></span> 님에게 쓰인 전체 롤링페이퍼</div>
+          <button class="ghost" onclick="closeAdmin()">닫기</button>
+        </div>
+        <div class="content">
+          <div class="sub muted">관리자 열람 화면입니다. <span id="adminAnonHint"></span></div>
+          <div style="height:10px"></div>
+          <div id="adminList" class="list"></div>
+        </div>
+      </div>
+    </dialog>
+
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <!-- 여기에 Firebase 설정을 붙여 넣으면 Firestore 모드로 자동 전환됩니다.
+  <script>
+    window.FIREBASE_CONFIG = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
+  </script> -->
+
+  <script>
+  // ========== 유틸리티 ==========
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+  const toast = (msg, ms=1800) => {
+    const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), ms);
+  };
+  const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+  // ========== 상태 ==========
+  const state = {
+    mode: 'local', // 'local' | 'firestore'
+    user: null, // { name, role: 'user'|'master'|'mmaster', uid? }
+    participants: [], // [{name, online, countTotal, countMine}]
+    filter: ''
+  };
+
+  // ========== 데이터 저장소 인터페이스 ==========
+  class LocalStore {
+    constructor(){
+      this.bc = ('BroadcastChannel' in window) ? new BroadcastChannel('rp') : null;
+      window.addEventListener('storage', (e)=>{
+        if(e.key && e.key.startsWith('rp:')) this._emit();
+      });
+      if(this.bc){ this.bc.onmessage = ()=> this._emit(); }
+      this.handlers = new Set();
+      this.ensure();
+      // mark offline on unload
+      window.addEventListener('beforeunload', ()=>{
+        const u = getCurrentName();
+        if(!u) return;
+        const p = this._read('rp:participants', {});
+        if(p[u]){ p[u].online = false; p[u].lastActive = Date.now(); this._write('rp:participants', p); }
+      });
+    }
+    ensure(){
+      if(!localStorage.getItem('rp:participants')) this._write('rp:participants', {});
+      if(!localStorage.getItem('rp:papers')) this._write('rp:papers', {});
+    }
+    _read(key, def){ try{ return JSON.parse(localStorage.getItem(key)) || def }catch{ return def } }
+    _write(key, val){ localStorage.setItem(key, JSON.stringify(val)); if(this.bc) this.bc.postMessage({}) }
+    onChange(handler){ this.handlers.add(handler); }
+    _emit(){ this.handlers.forEach(h=>h()); }
+    async signIn(name){
+      const p = this._read('rp:participants', {});
+      if(!['Master','mMaster'].includes(name)){
+        // block duplicate online
+        const someone = Object.values(p).find(x => x.name === name && x.online);
+        if(someone && getCurrentName() !== name){
+          throw new Error('이미 사용 중인 이름입니다.');
+        }
+        p[name] = p[name] || {name, createdAt: Date.now(), online:false, lastActive: Date.now()};
+        p[name].online = true; p[name].lastActive = Date.now();
+        this._write('rp:participants', p);
+      }
+      return { uid: 'local-'+name, name };
+    }
+    async signOut(name){
+      const p = this._read('rp:participants', {});
+      if(p[name]){ p[name].online = false; p[name].lastActive = Date.now(); this._write('rp:participants', p); }
+    }
+    async getParticipants(){
+      const p = this._read('rp:participants', {});
+      const list = Object.values(p).sort((a,b)=> a.name.localeCompare(b.name,'ko'));
+      // counts
+      const papers = Object.values(this._read('rp:papers', {}));
+      const mine = getCurrentName();
+      for(const person of list){
+        const total = papers.filter(x=>x.to===person.name).length;
+        const own = papers.filter(x=>x.to===person.name && x.authorName===mine).length;
+        person.countTotal = total; person.countMine = own;
+      }
+      return list;
+    }
+    onParticipants(cb){
+      this.onChange(async ()=>{
+        const list = await this.getParticipants();
+        cb(list);
+      });
+    }
+    async ensurePerson(name){
+      const p = this._read('rp:participants', {});
+      if(!p[name]){ p[name] = {name, createdAt: Date.now(), online:false, lastActive: Date.now()}; this._write('rp:participants', p); }
+    }
+    async createPaper({to, authorName, title, content}){
+      const id = uid();
+      const papers = this._read('rp:papers', {});
+      papers[id] = {id, to, authorName, authorUid:'local-'+authorName, title, content, createdAt: Date.now(), updatedAt: Date.now()};
+      this._write('rp:papers', papers);
+      return papers[id];
+    }
+    async listMyPapersTo(to, authorName){
+      const papers = Object.values(this._read('rp:papers', {}));
+      return papers.filter(x=>x.to===to && x.authorName===authorName).sort((a,b)=>b.updatedAt-a.updatedAt);
+    }
+    async listAllTo(to){
+      const papers = Object.values(this._read('rp:papers', {}));
+      return papers.filter(x=>x.to===to).sort((a,b)=>b.updatedAt-a.updatedAt);
+    }
+    async updatePaper(id, {title, content}){
+      const papers = this._read('rp:papers', {});
+      if(!papers[id]) throw new Error('존재하지 않는 문서');
+      papers[id].title = title; papers[id].content = content; papers[id].updatedAt = Date.now();
+      this._write('rp:papers', papers);
+      return papers[id];
+    }
+    async deletePaper(id){
+      const papers = this._read('rp:papers', {});
+      delete papers[id]; this._write('rp:papers', papers);
+    }
+  }
+
+  class FirestoreStore {
+    constructor(config){
+      this.app = firebase.initializeApp(config);
+      this.db = firebase.firestore();
+      this.auth = firebase.auth();
+      this.handlers = new Set();
+      window.addEventListener('beforeunload', ()=>this._setPresence(false));
+    }
+    async signIn(name){
+      const cred = await this.auth.signInAnonymously();
+      this.uid = cred.user.uid;
+      this.name = name;
+      if(!['Master','mMaster'].includes(name)){
+        await this.db.collection('participants').doc(name).set({
+          name, online:true, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          lastActive: firebase.firestore.FieldValue.serverTimestamp(), uid: this.uid
+        }, {merge:true});
+      }
+      return { uid: this.uid, name };
+    }
+    async _setPresence(online){
+      if(!this.name || ['Master','mMaster'].includes(this.name)) return;
+      try{
+        await this.db.collection('participants').doc(this.name).set({
+          online, lastActive: firebase.firestore.FieldValue.serverTimestamp()
+        }, {merge:true});
+      }catch{}
+    }
+    async signOut(){
+      await this._setPresence(false);
+      await this.auth.signOut();
+    }
+    async getParticipants(){
+      const snap = await this.db.collection('participants').get();
+      const papers = await this.db.collection('papers').get();
+      const mine = this.name;
+      const arr = snap.docs.map(d=>({name:d.id, ...(d.data()||{})}));
+      for(const person of arr){
+        const total = papers.docs.filter(x=>x.data().to===person.name).length;
+        const own = papers.docs.filter(x=>x.data().to===person.name && x.data().authorName===mine).length;
+        person.countTotal = total; person.countMine = own;
+      }
+      return arr.sort((a,b)=> a.name.localeCompare(b.name,'ko'));
+    }
+    onParticipants(cb){
+      this.db.collection('participants').onSnapshot(async ()=>{
+        cb(await this.getParticipants());
+      });
+      this.db.collection('papers').onSnapshot(async ()=>{
+        cb(await this.getParticipants());
+      });
+    }
+    async ensurePerson(name){
+      const doc = await this.db.collection('participants').doc(name).get();
+      if(!doc.exists){
+        await this.db.collection('participants').doc(name).set({name, online:false, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      }
+    }
+    async createPaper({to, authorName, title, content}){
+      const doc = await this.db.collection('papers').add({
+        to, authorName, authorUid: this.uid, title, content,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      return {id: doc.id, to, authorName, title, content};
+    }
+    async listMyPapersTo(to, authorName){
+      const snap = await this.db.collection('papers')
+        .where('to','==',to).where('authorName','==',authorName).orderBy('updatedAt','desc').get();
+      return snap.docs.map(d=>({id:d.id, ...d.data()}));
+    }
+    async listAllTo(to){
+      const snap = await this.db.collection('papers')
+        .where('to','==',to).orderBy('updatedAt','desc').get();
+      return snap.docs.map(d=>({id:d.id, ...d.data()}));
+    }
+    async updatePaper(id, {title, content}){
+      await this.db.collection('papers').doc(id).update({
+        title, content, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      const d = await this.db.collection('papers').doc(id).get();
+      return {id, ...d.data()};
+    }
+    async deletePaper(id){
+      await this.db.collection('papers').doc(id).delete();
+    }
+  }
+
+  // ========== 스토어 선택 ==========
+  let store = new LocalStore();
+  function isFirebaseReady(){
+    return window.FIREBASE_CONFIG && typeof FIREBASE_CONFIG.apiKey === 'string' && !FIREBASE_CONFIG.apiKey.includes('YOUR_');
+  }
+  window.addEventListener('load', ()=>{
+    try{
+      if(isFirebaseReady()){
+        state.mode = 'firestore';
+        store = new FirestoreStore(window.FIREBASE_CONFIG);
+        $('#statusArea').innerHTML = '백엔드: <b>Firestore</b> 연결됨';
+      }else{
+        $('#statusArea').innerHTML = '백엔드: <b>로컬 데모</b> (동일 브라우저 여러 탭 동시 테스트 가능)';
+      }
+    }catch(e){
+      console.warn('Firebase init 실패, 로컬 모드로 전환', e);
+      state.mode = 'local'; store = new LocalStore();
+      $('#statusArea').innerHTML = '백엔드: <b>로컬 데모</b>';
+    }
+  });
+
+  // ========== 로직 ==========
+  const loginEl = $('#login');
+  const mainEl = $('#main');
+  const helloEl = $('#hello');
+  const roleBadge = $('#roleBadge');
+  const peopleGrid = $('#peopleGrid');
+  const filterInput = $('#filterInput');
+
+  const writeDialog = $('#writeDialog');
+  const paperTitle = $('#paperTitle');
+  const paperContent = $('#paperContent');
+  const writeTargetLabel = $('#writeTargetLabel');
+  const savePaperBtn = $('#savePaperBtn');
+
+  const manageDialog = $('#manageDialog');
+  const manageTargetLabel = $('#manageTargetLabel');
+  const myList = $('#myList');
+
+  const adminDialog = $('#adminDialog');
+  const adminTargetName = $('#adminTargetName');
+  const adminAnonHint = $('#adminAnonHint');
+  const adminList = $('#adminList');
+
+  let editingPaperId = null;
+  let currentTarget = null;
+
+  function getCurrentName(){ return localStorage.getItem('rp:me') || ''; }
+  function setCurrentName(n){ localStorage.setItem('rp:me', n); }
+  function clearCurrentName(){ localStorage.removeItem('rp:me'); }
+
+  function roleOf(name){
+    if(name==='Master') return 'master';
+    if(name==='mMaster') return 'mmaster';
+    return 'user';
+  }
+
+  function applyRoleUI(){
+    const name = state.user?.name || '';
+    const role = state.user?.role;
+    helloEl.innerHTML = name ? `<span class="online-dot"></span><b>${name}</b> 님 환영합니다!` : '';
+    roleBadge.textContent = role==='master' ? '관리자 모드' : role==='mmaster' ? '최대 관리자' : '일반 사용자';
+  }
+
+  async function refreshPeople(){
+    let list = await store.getParticipants();
+    // 필터
+    const f = (state.filter||'').trim();
+    if(f) list = list.filter(p=> p.name.toLowerCase().includes(f.toLowerCase()));
+    // 렌더
+    peopleGrid.innerHTML = '';
+    if(list.length===0){
+      peopleGrid.innerHTML = '<div class="center muted" style="padding:40px">아직 참가자가 없습니다. 먼저 접속해 보세요.</div>';
+      return;
+    }
+    const me = state.user?.name;
+    const isAdmin = state.user?.role==='master' || state.user?.role==='mmaster';
+    for(const person of list){
+      const el = document.createElement('div');
+      el.className = 'person card';
+      el.innerHTML = `
+        <span class="pill">${person.online? '온라인' : '오프라인'}</span>
+        <div class="h">${person.name}</div>
+        <div class="counts">
+          <span title="전체">${person.countTotal ?? 0} 개</span>
+          <span title="내가 작성">${person.countMine ?? 0} 개 (내 글)</span>
+        </div>
+        <div class="toolbar">
+          <button ${person.name===me?'disabled':''} data-act="write">쓰기</button>
+          <button class="outline" ${person.name===me?'disabled':''} data-act="manage">수정·삭제</button>
+          ${isAdmin? `<button class="ok" data-act="admin">관리자 열람</button>` : ''}
+        </div>
+      `;
+      el.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const act = btn.dataset.act;
+          if(person.name===me && (act==='write'||act==='manage')){
+            toast('자기 자신의 페이지에는 들어갈 수 없습니다.');
+            return;
+          }
+          if(act==='write'){
+            currentTarget = person.name;
+            openWrite({mode:'create'});
+          }else if(act==='manage'){
+            currentTarget = person.name;
+            openManage(person.name);
+          }else if(act==='admin'){
+            openAdmin(person.name);
+          }
+        });
+      });
+      peopleGrid.appendChild(el);
+    }
+  }
+
+  function openWrite({mode, paper}){
+    $('#writeTitle').textContent = mode==='edit' ? '롤링페이퍼 수정' : '롤링페이퍼 작성';
+    $('#writeTargetLabel').textContent = `대상: ${currentTarget}`;
+    editingPaperId = (mode==='edit' && paper) ? paper.id : null;
+    paperTitle.value = paper?.title || '';
+    paperContent.value = paper?.content || '';
+    writeDialog.showModal();
+  }
+  function closeWrite(){ writeDialog.close(); editingPaperId = null; currentTarget = null; paperTitle.value=''; paperContent.value=''; }
+
+  async function openManage(target){
+    manageTargetLabel.textContent = `대상 ${target}`;
+    const myName = state.user.name;
+    const mine = await store.listMyPapersTo(target, myName);
+    myList.innerHTML = '';
+    if(mine.length===0){
+      myList.innerHTML = '<div class="center muted item">아직 작성한 글이 없습니다.</div>';
+    }else{
+      for(const p of mine){
+        const item = document.createElement('div');
+        const date = new Date(p.updatedAt || p.createdAt || Date.now());
+        item.className = 'item';
+        item.innerHTML = `
+          <b>${p.title || '(제목 없음)'}</b>
+          <div class="muted" style="font-size:12px; margin-bottom:8px">${date.toLocaleString()}</div>
+          <div style="white-space:pre-wrap">${p.content || ''}</div>
+          <div style="margin-top:8px; display:flex; gap:8px; justify-content:flex-end">
+            <button class="outline" data-act="edit">수정</button>
+            <button class="danger" data-act="del">삭제</button>
+          </div>
+        `;
+        item.querySelector('[data-act="edit"]').onclick = ()=>{ currentTarget = target; openWrite({mode:'edit', paper:p}); };
+        item.querySelector('[data-act="del"]').onclick = async ()=>{
+          if(confirm('이 글을 삭제할까요?')){
+            await store.deletePaper(p.id);
+            toast('삭제되었습니다.');
+            openManage(target); // 새로고침
+            refreshPeople();
+          }
+        };
+        myList.appendChild(item);
+      }
+    }
+    manageDialog.showModal();
+  }
+  function closeManage(){ manageDialog.close(); myList.innerHTML=''; }
+
+  async function openAdmin(target){
+    adminTargetName.textContent = target;
+    const isSuper = state.user.role==='mmaster';
+    adminAnonHint.innerHTML = isSuper ? '작성자 표시 <span class="hl">(mMaster)</span>' : '작성자 숨김 <span class="hl">(Master)</span>';
+    const all = await store.listAllTo(target);
+    adminList.innerHTML='';
+    if(all.length===0){
+      adminList.innerHTML = '<div class="center muted item">아직 글이 없습니다.</div>';
+    }else{
+      for(const p of all){
+        const item = document.createElement('div');
+        const date = new Date(p.updatedAt || p.createdAt || Date.now());
+        item.className='item';
+        const authorLabel = isSuper ? `<span class="warn">작성자: ${p.authorName || '알수없음'}</span>` : `<span class="muted">작성자: 익명</span>`;
+        item.innerHTML = `
+          <b>${p.title || '(제목 없음)'}</b>
+          <div class="muted" style="font-size:12px; margin-bottom:8px">${authorLabel} · ${date.toLocaleString()}</div>
+          <div style="white-space:pre-wrap">${p.content || ''}</div>
+        `;
+        adminList.appendChild(item);
+      }
+    }
+    adminDialog.showModal();
+  }
+  function closeAdmin(){ adminDialog.close(); adminList.innerHTML=''; }
+
+  // 이벤트 바인딩
+  $('#enterBtn').addEventListener('click', async ()=>{
+    const name = ($('#nameInput').value || '').trim();
+    if(!name){ toast('이름을 입력해 주세요'); return; }
+    try{
+      await store.signIn(name);
+      state.user = { name, role: roleOf(name) };
+      setCurrentName(name);
+      loginEl.classList.add('hidden');
+      mainEl.classList.remove('hidden');
+      applyRoleUI();
+      await store.ensurePerson(name); // 이름도 목록에 보이게
+      // 구독
+      await refreshPeople();
+      store.onParticipants(async (list)=>{
+        state.participants = list;
+        refreshPeople();
+      });
+      toast('입장했습니다.');
+    }catch(e){
+      console.error(e);
+      toast(e.message || '입장 실패');
+    }
+  });
+
+  $('#logoutBtn').addEventListener('click', async ()=>{
+    if(state.user?.name && state.mode==='firestore'){
+      await store.signOut();
+    }else if(state.user?.name){
+      await store.signOut(state.user.name);
+    }
+    clearCurrentName();
+    location.reload();
+  });
+
+  filterInput.addEventListener('input', ()=>{
+    state.filter = filterInput.value;
+    refreshPeople();
+  });
+
+  savePaperBtn.addEventListener('click', async ()=>{
+    const title = (paperTitle.value||'').trim();
+    const content = (paperContent.value||'').trim();
+    if(!currentTarget) return;
+    if(!title || !content){ toast('제목과 내용을 입력해 주세요'); return; }
+    try{
+      if(editingPaperId){
+        await store.updatePaper(editingPaperId, {title, content});
+        toast('수정되었습니다.');
+      }else{
+        await store.createPaper({to: currentTarget, authorName: state.user.name, title, content});
+        toast('저장되었습니다.');
+      }
+      closeWrite();
+      refreshPeople();
+      // 만약 관리 모달이 열려 있으면 갱신
+      if(manageDialog.open){ openManage(currentTarget); }
+      if(adminDialog.open){ openAdmin(currentTarget); }
+    }catch(e){
+      console.error(e);
+      toast('저장 중 오류');
+    }
+  });
+
+  // 자동 로그인 복원
+  window.addEventListener('load', async ()=>{
+    const remembered = getCurrentName();
+    if(remembered){
+      $('#nameInput').value = remembered;
+    }
+  });
+  </script>
+</body>
+</html>
