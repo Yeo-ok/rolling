@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>롤링페이퍼 (밝은테마 · 권한없이접속 · 팝업없음)</title>
+  <title>롤링페이퍼</title>
   <style>
     :root{
       --bg:#ffffff; --text:#111827; --muted:#6b7280;
@@ -15,9 +15,32 @@
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
-      margin:0; background:var(--bg); color:var(--text);
+      margin:0; color:var(--text);
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      /* 파스텔 보케 느낌 배경 */
+      background:
+        radial-gradient(1200px 900px at -10% -10%, #e0f2ff 0%, transparent 60%),
+        radial-gradient(900px 700px at 110% -10%, #fef3c7 0%, transparent 55%),
+        radial-gradient(900px 700px at 50% 120%, #dcfce7 0%, transparent 55%),
+        linear-gradient(#ffffff,#ffffff);
+      background-attachment: fixed;
+      overflow-x:hidden;
     }
+    /* 살짝 움직이는 배경 조명 */
+    @keyframes floatGlow {
+      0% { filter:saturate(110%) brightness(102%); }
+      50%{ filter:saturate(120%) brightness(105%); }
+      100%{ filter:saturate(110%) brightness(102%); }
+    }
+    body::after{
+      content:""; position:fixed; inset:-10% -10% -10% -10%; z-index:-1; pointer-events:none;
+      background:
+        radial-gradient(40vw 30vw at 20% 20%, rgba(99,102,241,.10), transparent 60%),
+        radial-gradient(45vw 35vw at 80% 15%, rgba(16,185,129,.10), transparent 60%),
+        radial-gradient(60vw 45vw at 50% 85%, rgba(250,204,21,.10), transparent 60%);
+      animation: floatGlow 10s ease-in-out infinite;
+    }
+
     a{color:var(--accent); text-decoration:none}
     .wrap{max-width:1100px; margin:0 auto; padding:24px}
     header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px;}
@@ -67,17 +90,34 @@
       border:1px solid var(--border); border-radius:10px; padding:8px 12px; cursor:pointer;
     }
     .back svg{width:18px; height:18px}
-    /* 큰 글 보기(전광판 느낌) */
+
+    /* ====== 관리자 상세 전광판 스타일 ====== */
     .big .content{display:flex; justify-content:center}
-    .reader{max-width:1000px; margin:0 auto; text-align:center}
-    .big h1{font-size:clamp(28px, 6vw, 64px); margin:0 0 10px 0}
-    .big .meta{color:var(--muted); margin-bottom:16px; font-size:clamp(12px,1.8vw,16px)}
+    .reader{max-width:min(1400px, 94vw); margin:2vh auto 4vh; text-align:center}
+    /* 제목은 적당히 크고 */
+    .big h1{
+      font-size:clamp(20px, 3.6vw, 44px);
+      margin:0 0 8px 0; line-height:1.2; letter-spacing:.4px;
+    }
+    .big .meta{color:var(--muted); margin-bottom:18px; font-size:clamp(12px,1.6vw,16px)}
+    /* 내용은 제목보다 훨~씬 크게 (전광판 느낌) */
     .big .body{
-      font-size:clamp(18px, 3.2vw, 36px);
-      line-height:1.8;
+      font-size:clamp(28px, 6.8vw, 96px);  /* ← 내용이 더 큼 */
+      line-height:1.25;
       white-space:pre-wrap;
-      letter-spacing:.2px;
+      letter-spacing:.3px;
       text-align:center;
+      margin-top:10px;
+      /* 은은한 텍스트 그림자로 가독성 + 전광판 느낌 */
+      text-shadow: 0 1px 0 rgba(255,255,255,.6), 0 6px 20px rgba(37,99,235,.08);
+    }
+    /* 상세 카드만 부드러운 그라데이션 배경 */
+    #adminReadView .card{
+      background:
+        radial-gradient(900px 600px at 20% 0%, #eef2ff 0%, transparent 60%),
+        radial-gradient(900px 600px at 80% 100%, #ecfdf5 0%, transparent 60%),
+        var(--card);
+      border-color:#e6e9f5;
     }
   </style>
 
@@ -109,7 +149,7 @@
       <div id="statusArea" class="sub"></div>
     </header>
 
-    <!-- ====== 뷰: 로그인 ====== -->
+    <!-- 로그인 -->
     <section id="loginView" class="card section">
       <div class="h">입장하기</div>
       <div class="section">
@@ -123,7 +163,7 @@
       </div>
     </section>
 
-    <!-- ====== 뷰: 메인(참가자 그리드) ====== -->
+    <!-- 메인 -->
     <section id="mainView" class="hidden">
       <div class="card">
         <div class="topbar">
@@ -147,7 +187,7 @@
       </div>
     </section>
 
-    <!-- ====== 뷰: 글쓰기/수정 ====== -->
+    <!-- 글쓰기/수정 -->
     <section id="writeView" class="hidden">
       <div class="card">
         <div class="topbar">
@@ -171,7 +211,7 @@
       </div>
     </section>
 
-    <!-- ====== 뷰: 내 글 관리(목록/수정/삭제) ====== -->
+    <!-- 내 글 관리 -->
     <section id="manageView" class="hidden">
       <div class="card">
         <div class="topbar">
@@ -189,7 +229,7 @@
       </div>
     </section>
 
-    <!-- ====== 뷰: 관리자 - 제목 목록 ====== -->
+    <!-- 관리자 - 제목 목록 -->
     <section id="adminListView" class="hidden">
       <div class="card">
         <div class="topbar">
@@ -201,15 +241,13 @@
           <div></div>
         </div>
         <div class="content">
-          <div class="sub" style="margin-bottom:8px">
-            • 목록은 <b>제목만</b> 표시합니다. 제목을 누르면 큰 화면으로 열립니다.
-          </div>
+          <div class="sub" style="margin-bottom:8px">• 목록은 <b>제목만</b> 표시합니다. 제목을 누르면 큰 화면으로 열립니다.</div>
           <div id="adminTitleList" class="list"></div>
         </div>
       </div>
     </section>
 
-    <!-- ====== 뷰: 관리자 - 단일 글 크게 보기 ====== -->
+    <!-- 관리자 - 단일 글 크게 보기 (전광판) -->
     <section id="adminReadView" class="hidden">
       <div class="card big">
         <div class="topbar">
@@ -246,10 +284,9 @@
   </script>
 
   <script>
-  // ===== 공통 유틸 =====
+  // ===== 유틸 =====
   const $ = s => document.querySelector(s);
-  const $$ = s => Array.from(document.querySelectorAll(s));
-  const toast = (m,ms=2000)=>{ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),ms); }
+  const toast = (m,ms=2000)=>{ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),ms); }
   const toMillis = v => (v?.toDate?.() ? v.toDate().getTime() : (typeof v==='number'?v:(isNaN(new Date(v))?0:+new Date(v))));
   const formatDT = ts => new Date(ts||Date.now()).toLocaleString();
 
@@ -258,7 +295,7 @@
   const viewIds = ['loginView','mainView','writeView','manageView','adminListView','adminReadView'];
   const stack = [];
   const goTo = (id, push=true)=>{
-    viewIds.forEach(v=>$('#'+v).classList.toggle('hidden', v!==id));
+    viewIds.forEach(v=>document.getElementById(v).classList.toggle('hidden', v!==id));
     if(push) stack.push(state.view);
     state.view = id;
   };
@@ -308,8 +345,8 @@
         const [pSnap, papersSnap] = await Promise.all([ this.colParticipants().get(), this.colPapers().get() ]);
         const mine = this.name;
         const arr = pSnap.docs.map(d=>({name:d.id, ...(d.data()||{})}));
+        const all = papersSnap.docs.map(d=>d.data());
         for(const person of arr){
-          const all = papersSnap.docs.map(d=>d.data());
           person.countTotal = all.filter(x=>x.to===person.name).length;
           person.countMine  = all.filter(x=>x.to===person.name && x.authorName===mine).length;
           if(typeof person.online!=='boolean') person.online=false;
@@ -371,24 +408,22 @@
     }
   }
 
-  // ===== 전역 변수 =====
-  let store=null, currentTarget=null, editingPaperId=null, peopleCache=[], adminCurrentList=[], adminCurrentPaper=null;
+  // ===== 전역 =====
+  let store=null, currentTarget=null, editingPaperId=null, peopleCache=[];
 
-  // ===== 공통 UI =====
   function roleOf(name){ if(name==='Master') return 'master'; if(name==='mMaster') return 'mmaster'; return 'user'; }
   const isAdmin = ()=> state.role==='master' || state.role==='mmaster';
 
   function applyRoleUI(){
-    $('#hello').innerHTML = `<span class="online-dot"></span><b>${state.user?.name}</b> 님 환영합니다!`;
-    // UI에는 역할 이름 노출 최소화 (둘 다 '관리자'로 표기)
-    $('#roleBadge').textContent = isAdmin() ? '관리자' : '일반 사용자';
-    $('#resetBtn').classList.toggle('hidden', state.role!=='mmaster');
+    document.getElementById('hello').innerHTML = `<span class="online-dot"></span><b>${state.user?.name}</b> 님 환영합니다!`;
+    document.getElementById('roleBadge').textContent = isAdmin() ? '관리자' : '일반 사용자';
+    document.getElementById('resetBtn').classList.toggle('hidden', state.role!=='mmaster');
   }
 
   async function refreshPeople(){
     const f=(state.filter||'').trim().toLowerCase();
     const list=peopleCache.filter(p=>!f||p.name.toLowerCase().includes(f));
-    const grid = $('#peopleGrid'); grid.innerHTML='';
+    const grid = document.getElementById('peopleGrid'); grid.innerHTML='';
     if(list.length===0){ grid.innerHTML='<div class="sub" style="padding:40px;text-align:center;color:var(--muted)">아직 참가자가 없습니다.</div>'; return;}
     const me = state.user?.name;
     for(const person of list){
@@ -418,21 +453,19 @@
     }
   }
 
-  // ===== 뷰: 글쓰기/수정 =====
   function openWrite({mode, paper}){
-    $('#writeTitle').textContent = mode==='edit' ? '롤링페이퍼 수정' : '롤링페이퍼 작성';
-    $('#writeTargetLabel').textContent = `대상: ${currentTarget}`;
+    document.getElementById('writeTitle').textContent = mode==='edit' ? '롤링페이퍼 수정' : '롤링페이퍼 작성';
+    document.getElementById('writeTargetLabel').textContent = `대상: ${currentTarget}`;
     editingPaperId = mode==='edit' ? paper.id : null;
-    $('#paperTitle').value = paper?.title || '';
-    $('#paperContent').value = paper?.content || '';
+    document.getElementById('paperTitle').value = paper?.title || '';
+    document.getElementById('paperContent').value = paper?.content || '';
     goTo('writeView');
   }
 
-  // ===== 뷰: 내 글 관리 =====
   async function openManage(target){
-    $('#manageTargetLabel').textContent = `대상 ${target}`;
+    document.getElementById('manageTargetLabel').textContent = `대상 ${target}`;
     const list = await store.listMyPapersTo(target, state.user.name);
-    const box = $('#myList'); box.innerHTML='';
+    const box = document.getElementById('myList'); box.innerHTML='';
     if(list.length===0){
       box.innerHTML='<div class="item sub" style="text-align:center">아직 작성한 글이 없습니다.</div>';
     }else{
@@ -459,16 +492,15 @@
     goTo('manageView');
   }
 
-  // ===== 뷰: 관리자 제목 목록 =====
   async function openAdminList(target){
-    $('#adminTargetName').textContent = target;
+    document.getElementById('adminTargetName').textContent = target;
     try{
-      adminCurrentList = await store.listAllTo(target);
-      const box = $('#adminTitleList'); box.innerHTML='';
-      if(adminCurrentList.length===0){
+      const list = await store.listAllTo(target);
+      const box = document.getElementById('adminTitleList'); box.innerHTML='';
+      if(list.length===0){
         box.innerHTML='<div class="item sub" style="text-align:center">아직 글이 없습니다.</div>';
       }else{
-        adminCurrentList.forEach(p=>{
+        list.forEach(p=>{
           const el=document.createElement('div'); el.className='item';
           el.innerHTML=`<button class="ghost" data-id="${p.id}" style="text-align:left; width:100%; font-weight:700">${p.title||'(제목 없음)'}</button>`;
           el.querySelector('button').onclick=()=>openAdminRead(p.id);
@@ -479,40 +511,36 @@
     }catch(e){ toast('관리자 열람 실패: '+(e.message||e.code)); }
   }
 
-  // ===== 뷰: 관리자 단일 글 크게 보기 =====
   async function openAdminRead(paperId){
     try{
       const p = await store.getPaper(paperId);
-      adminCurrentPaper = p;
       const showAuthor = (state.role==='mmaster'); // 최고 권한만 작성자 표시
       const metaParts = [];
       if(showAuthor) metaParts.push(`작성자: ${p.authorName || '알 수 없음'}`);
       metaParts.push(formatDT(toMillis(p.updatedAt)||toMillis(p.createdAt)));
 
-      $('#adminReadTitle').textContent = p.title||'(제목 없음)';
-      $('#adminReadMeta').textContent = metaParts.join(' · ');
-      $('#adminReadContent').textContent = p.content||'';
+      document.getElementById('adminReadTitle').textContent = p.title||'(제목 없음)';
+      document.getElementById('adminReadMeta').textContent = metaParts.join(' · ');
+      document.getElementById('adminReadContent').textContent = p.content||'';
       goTo('adminReadView');
     }catch(e){ toast('글을 불러오지 못했습니다: '+(e.message||e.code)); }
   }
 
-  // ===== 초기화 및 이벤트 =====
   function initApp(){
     try{
       if (!window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.apiKey) {
         throw new Error('FIREBASE_CONFIG 누락 또는 잘못된 설정');
       }
-      store = new Store(window.FIREBASE_CONFIG);
-      $('#statusArea').innerHTML = `백엔드: <b>Firestore</b> 연결 준비 · <span class="sub">인증 없음(지인용)</span>`;
+      window.store = new Store(window.FIREBASE_CONFIG);
+      document.getElementById('statusArea').innerHTML = `백엔드: <b>Firestore</b> 연결 준비 · <span class="sub">인증 없음(지인용)</span>`;
     }catch(e){
       console.error(e);
-      $('#statusArea').innerHTML = `<span style="color:#b91c1c">Firebase 초기화 실패:</span> <span class="sub">${e.message || e.code || '알 수 없는 오류'}</span>`;
+      document.getElementById('statusArea').innerHTML = `<span style="color:#b91c1c">Firebase 초기화 실패:</span> <span class="sub">${e.message || e.code || '알 수 없는 오류'}</span>`;
       return;
     }
 
-    // 입장
-    $('#enterBtn').addEventListener('click', async ()=>{
-      const name = ($('#nameInput').value||'').trim();
+    document.getElementById('enterBtn').addEventListener('click', async ()=>{
+      const name = (document.getElementById('nameInput').value||'').trim();
       if(!name){ toast('이름을 입력해 주세요'); return; }
       state.role = roleOf(name);
       try{
@@ -526,10 +554,9 @@
       }catch(e){ console.error(e); toast('입장 실패: '+(e.message||e.code)); }
     });
 
-    // 메인 상단 버튼들
-    $('#logoutBtn').addEventListener('click', async ()=>{ try{ await store.signOut(); }catch{} location.reload(); });
-    $('#filterInput').addEventListener('input', e=>{ state.filter=e.target.value; refreshPeople(); });
-    $('#resetBtn').addEventListener('click', async ()=>{
+    document.getElementById('logoutBtn').addEventListener('click', async ()=>{ try{ await store.signOut(); }catch{} location.reload(); });
+    document.getElementById('filterInput').addEventListener('input', e=>{ state.filter=e.target.value; refreshPeople(); });
+    document.getElementById('resetBtn').addEventListener('click', async ()=>{
       if(state.role!=='mmaster') return;
       const phrase='전체 초기화';
       const input=prompt(`정말 모든 글과 참가자 목록을 삭제할까요?\n되돌릴 수 없습니다!\n확인 문구: ${phrase}`);
@@ -539,17 +566,17 @@
     });
 
     // 뒤로가기
-    $('#backFromMain').addEventListener('click', async ()=>{ try{ await store.signOut(); }catch{} goTo('loginView'); stack.length=0; });
-    $('#backWrite').addEventListener('click', goBack);
-    $('#cancelWrite').addEventListener('click', goBack);
-    $('#backManage').addEventListener('click', goBack);
-    $('#backAdminList').addEventListener('click', goBack);
-    $('#backAdminRead').addEventListener('click', goBack);
+    document.getElementById('backFromMain').addEventListener('click', async ()=>{ try{ await store.signOut(); }catch{} goTo('loginView'); stack.length=0; });
+    document.getElementById('backWrite').addEventListener('click', goBack);
+    document.getElementById('cancelWrite').addEventListener('click', goBack);
+    document.getElementById('backManage').addEventListener('click', goBack);
+    document.getElementById('backAdminList').addEventListener('click', goBack);
+    document.getElementById('backAdminRead').addEventListener('click', goBack);
 
     // 저장
-    $('#savePaperBtn').addEventListener('click', async ()=>{
-      const title=($('#paperTitle').value||'').trim();
-      const content=($('#paperContent').value||'').trim();
+    document.getElementById('savePaperBtn').addEventListener('click', async ()=>{
+      const title=(document.getElementById('paperTitle').value||'').trim();
+      const content=(document.getElementById('paperContent').value||'').trim();
       if(!currentTarget){ toast('대상이 없습니다.'); return; }
       if(!title||!content){ toast('제목과 내용을 입력해 주세요'); return; }
       try{
