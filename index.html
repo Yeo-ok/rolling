@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>롤링페이퍼 - 친구용 실시간 (Firestore, 인증 없음)</title>
+  <title>롤링페이퍼 - 실시간 (권한 없이 누구나 접속, 방 없음)</title>
   <style>
     :root{
       --bg:#0f1226; --card:#171a35; --muted:#9aa3b2; --text:#e9ecf1;
@@ -26,7 +26,7 @@
     .logo i{width:36px; height:36px; background:linear-gradient(135deg,var(--accent),#9a7cff); border-radius:10px; box-shadow:var(--shadow)}
     .tag{padding:6px 10px; border:1px solid #2a2f56; border-radius:999px; color:var(--muted); font-size:12px}
     .card{background:linear-gradient(180deg, rgba(255,255,255,.02), transparent 60%), var(--card); border:1px solid #2a2f56; border-radius:var(--radius); box-shadow:var(--shadow);}
-    .login{max-width:620px; margin:10vh auto 0; padding:24px;}
+    .login{max-width:520px; margin:10vh auto 0; padding:24px;}
     .row{display:flex; gap:10px; align-items:center}
     input[type=text], textarea{width:100%; padding:12px 14px; border-radius:12px; border:1px solid #2a2f56; background:#0f1330; color:var(--text); outline:none}
     input[type=text]:focus, textarea:focus{border-color:var(--accent)}
@@ -62,19 +62,16 @@
   </style>
 
   <!--
-    친구들끼리 쓰는 용도에 맞춘 "무인증(로그인 없이) + 방코드" 버전
-    - Firebase Authentication을 사용하지 않습니다 → Authorized domains 추가 불필요
-    - Firestore 규칙은 테스트용으로 열어 두셔야 합니다 (운영권장X)
+    ⚠️ 보안 안내(테스트/지인용)
+    - 이 버전은 Firebase Authentication을 사용하지 않습니다. 누구나 이름만으로 접속합니다.
+    - Firestore 규칙을 임시로 전체 허용해야 합니다. (배포용 권장 X)
       rules_version = '2';
       service cloud.firestore {
         match /databases/{database}/documents {
-          match /{document=**} {
-            allow read, write: if true;
-          }
+          match /{document=**} { allow read, write: if true; }
         }
       }
-    - 안전을 위해 "방코드(ROOM) + 관리자PIN"을 파일 상단에서 지정해 두었습니다.
-      → 같은 방코드를 아는 친구들끼리만 같은 공간을 사용하게 됩니다.
+    - 운영 전에는 반드시 인증/권한 규칙을 복구하세요.
   -->
 
   <!-- Firebase SDK (앱 + Firestore만) -->
@@ -88,7 +85,7 @@
         <i></i>
         <div>
           <div><b>롤링페이퍼</b> <span class="tag">실시간</span></div>
-          <div class="sub">이름으로 접속 · 방코드로 모이기 · 다른 사람에게만 작성 · 내 글만 열람/수정/삭제 · 관리자 열람</div>
+          <div class="sub">이름으로 접속 · 다른 사람에게만 작성 · 내 글만 열람/수정/삭제 · 관리자 열람</div>
         </div>
       </div>
       <div id="statusArea" class="sub"></div>
@@ -99,13 +96,12 @@
       <div class="h">입장하기</div>
       <div class="section">
         <div class="row">
-          <input id="roomInput" type="text" placeholder="방코드(예: ABC123)" maxlength="24" />
           <input id="nameInput" type="text" placeholder="이름" maxlength="24" />
           <button id="enterBtn">입장</button>
         </div>
         <div class="note" style="margin-top:12px">
-          • 방코드는 친구들과 미리 공유한 값으로 맞춰주세요. (대소문자 구분 없음)<br/>
-          • 관리자(숨김 예약): <code>Master</code> / <code>mMaster</code> → 관리자 PIN 필요(아래 코드에서 변경 가능)
+          • 이 버전은 인증 없이 누구나 접속 가능합니다.<br/>
+          • 관리자 이름은 숨겨져 있지만, <code>Master</code> / <code>mMaster</code>를 입력하면 관리자/최대관리자 모드로 진입합니다.
         </div>
       </div>
     </section>
@@ -117,7 +113,6 @@
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
             <span id="hello"></span>
             <span id="roleBadge" class="role-badge"></span>
-            <span id="roomBadge" class="role-badge"></span>
           </div>
           <div class="search">
             <input id="filterInput" type="text" placeholder="이름 검색…" />
@@ -186,7 +181,7 @@
     <div id="toast" class="toast"></div>
   </div>
 
-  <!-- 🔧 여기만 본인 Firebase 설정으로 바꾸면 됩니다 -->
+  <!-- 🔧 Firebase 설정(당신이 올린 값 사용) -->
   <script>
     window.FIREBASE_CONFIG = {
       apiKey: "AIzaSyA2sTHW22VtoAIXd2P8b9Nift0c-WPSLdM",
@@ -196,37 +191,28 @@
       messagingSenderId: "663780806800",
       appId: "1:663780806800:web:f6f6f850fd926eeb42c815"
     };
-
-    // 친구 방 전용 옵션 (원하는 값으로 바꿔서 공유하세요)
-    window.FRIENDS_ONLY = {
-      DEFAULT_ROOM_HINT: "ABC123",   // 로그인 화면 placeholder 힌트
-      REQUIRE_ROOM: true,            // 방코드 필수
-      ADMIN_PIN: "4242"              // Master / mMaster 사용할 때 필요한 PIN
-    };
   </script>
 
   <script>
   // ========== 유틸 ==========
   const $ = sel => document.querySelector(sel);
   const toast = (msg, ms=1800) => { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), ms); };
-  const now = () => new Date();
 
   // ========== 상태 ==========
-  const state = { user: null, room: null, filter: '', role: 'user' };
+  const state = { user: null, role: 'user', filter: '' };
 
-  // ========== Firestore Store (무인증) ==========
-  class FirestoreStore {
-    constructor(config, room){
+  // ========== Firestore (무인증) ==========
+  class Store {
+    constructor(config){
       this.app = firebase.initializeApp(config);
       this.db = firebase.firestore();
-      this.room = room.toUpperCase();
-      this.uid = localStorage.getItem('anonUid') || this._genId();
+      this.uid = localStorage.getItem('anonUid') || this._id();
       localStorage.setItem('anonUid', this.uid);
-      window.addEventListener('beforeunload', ()=>this._setPresence(false).catch(()=>{}));
+      window.addEventListener('beforeunload', ()=>this._presence(false).catch(()=>{}));
     }
-    _genId(){ if(window.crypto?.randomUUID) return crypto.randomUUID(); return Math.random().toString(36).slice(2)+Date.now().toString(36); }
-    colParticipants(){ return this.db.collection('rooms').doc(this.room).collection('participants'); }
-    colPapers(){ return this.db.collection('rooms').doc(this.room).collection('papers'); }
+    _id(){ if(window.crypto?.randomUUID) return crypto.randomUUID(); return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+    colParticipants(){ return this.db.collection('participants'); }
+    colPapers(){ return this.db.collection('papers'); }
 
     async signIn(name){
       this.name = name;
@@ -239,16 +225,15 @@
       }
       return { uid: this.uid, name };
     }
-    async _setPresence(online){
+    async _presence(online){
       if(!this.name || ['Master','mMaster'].includes(this.name)) return;
       await this.colParticipants().doc(this.name).set({
         online, lastActive: firebase.firestore.FieldValue.serverTimestamp()
       }, {merge:true});
     }
-    async signOut(){ await this._setPresence(false); }
+    async signOut(){ await this._presence(false); }
 
-    onParticipantsChanged(cb){
-      // participants + papers 동시 감지하여 카운트 계산
+    onPeopleChanged(cb){
       const update = async () => {
         const [pSnap, papersSnap] = await Promise.all([
           this.colParticipants().get(),
@@ -303,7 +288,6 @@
       await this.colPapers().doc(id).delete();
     }
     async resetAllPapers(){
-      // 현재 방의 papers만 전체 삭제
       let total = 0;
       while(true){
         const snap = await this.colPapers().limit(450).get();
@@ -321,12 +305,11 @@
   let store = null;
   const statusArea = document.getElementById('statusArea');
 
-  // ========== UI 바인딩 ==========
+  // UI refs
   const loginEl = document.getElementById('login');
   const mainEl = document.getElementById('main');
   const helloEl = document.getElementById('hello');
   const roleBadge = document.getElementById('roleBadge');
-  const roomBadge = document.getElementById('roomBadge');
   const peopleGrid = document.getElementById('peopleGrid');
   const filterInput = document.getElementById('filterInput');
   const resetBtn = document.getElementById('resetBtn');
@@ -347,21 +330,20 @@
 
   let editingPaperId = null;
   let currentTarget = null;
-  let participantsCache = [];
+  let peopleCache = [];
 
   function roleOf(name){ if(name==='Master') return 'master'; if(name==='mMaster') return 'mmaster'; return 'user'; }
-  function isAdmin(){ return state.role==='master' || state.role==='mmaster'; }
+  const isAdmin = () => state.role==='master' || state.role==='mmaster';
 
   function applyRoleUI(){
     helloEl.innerHTML = `<span class="online-dot"></span><b>${state.user?.name}</b> 님 환영합니다!`;
     roleBadge.textContent = state.role==='master' ? '관리자' : state.role==='mmaster' ? '최대 관리자' : '일반 사용자';
-    roomBadge.textContent = `방: ${state.room}`;
     if(state.role==='mmaster') resetBtn.classList.remove('hidden'); else resetBtn.classList.add('hidden');
   }
 
   async function refreshPeople(){
     const f = (state.filter||'').trim().toLowerCase();
-    const list = participantsCache.filter(p => !f || p.name.toLowerCase().includes(f));
+    const list = peopleCache.filter(p => !f || p.name.toLowerCase().includes(f));
     peopleGrid.innerHTML = '';
     if(list.length===0){
       peopleGrid.innerHTML = '<div class="center muted" style="padding:40px">아직 참가자가 없습니다.</div>'; return;
@@ -465,42 +447,25 @@
 
   // ========== 이벤트 ==========
   document.getElementById('enterBtn').addEventListener('click', async ()=>{
-    const roomRaw = (document.getElementById('roomInput').value || window.FRIENDS_ONLY?.DEFAULT_ROOM_HINT || '').trim();
     const nameRaw = (document.getElementById('nameInput').value || '').trim();
-    if(window.FRIENDS_ONLY?.REQUIRE_ROOM && !roomRaw){ toast('방코드를 입력해 주세요'); return; }
     if(!nameRaw){ toast('이름을 입력해 주세요'); return; }
 
-    // 관리자 이름 보호 (PIN 필요)
-    let role = roleOf(nameRaw);
-    if(role==='master' || role==='mmaster'){
-      const pin = prompt('관리자 PIN을 입력하세요');
-      if(pin !== (window.FRIENDS_ONLY?.ADMIN_PIN || '4242')){
-        alert('PIN이 올바르지 않습니다.');
-        return;
-      }
-    }
-
-    // 초기화
-    state.room = (roomRaw || 'DEFAULT').toUpperCase();
-    store = new FirestoreStore(window.FIREBASE_CONFIG, state.room);
+    state.role = roleOf(nameRaw);
+    store = new Store(window.FIREBASE_CONFIG);
 
     try{
       await store.signIn(nameRaw);
       await store.ensurePerson(nameRaw);
       state.user = { name: nameRaw };
-      state.role = role;
 
       // UI 전환
       loginEl.classList.add('hidden');
       mainEl.classList.remove('hidden');
       applyRoleUI();
-      statusArea.innerHTML = `백엔드: <b>Firestore</b> 연결됨 · <span class="muted">인증 없음(친구용)</span>`;
+      statusArea.innerHTML = `백엔드: <b>Firestore</b> 연결됨 · <span class="muted">인증 없음(지인용)</span>`;
 
       // 실시간 목록
-      store.onParticipantsChanged((list)=>{
-        participantsCache = list;
-        refreshPeople();
-      });
+      store.onPeopleChanged((list)=>{ peopleCache = list; refreshPeople(); });
 
       toast('입장했습니다.');
     }catch(e){
@@ -514,13 +479,13 @@
     location.reload();
   });
 
-  filterInput.addEventListener('input', ()=>{ state.filter = filterInput.value; refreshPeople(); });
+  document.getElementById('filterInput').addEventListener('input', (e)=>{ state.filter = e.target.value; refreshPeople(); });
 
-  // mMaster 전용: 현재 방의 글 전체 초기화
-  resetBtn.addEventListener('click', async ()=>{
+  // mMaster 전용: 글 전체 초기화
+  document.getElementById('resetBtn').addEventListener('click', async ()=>{
     if(state.role!=='mmaster') return;
-    const phrase = `${state.room} 방 전체 초기화`;
-    const input = prompt(`정말 이 방(${state.room})의 모든 글을 삭제할까요?\n되돌릴 수 없습니다!\n확인 문구를 입력하세요:\n${phrase}`);
+    const phrase = '전체 초기화';
+    const input = prompt(`정말 모든 글을 삭제할까요?\n되돌릴 수 없습니다!\n확인 문구를 입력하세요: ${phrase}`);
     if(input!==phrase){ toast('취소되었습니다.'); return; }
     try{
       const deleted = await store.resetAllPapers();
@@ -533,8 +498,8 @@
 
   // 저장
   document.getElementById('savePaperBtn').addEventListener('click', async ()=>{
-    const title = (paperTitle.value||'').trim();
-    const content = (paperContent.value||'').trim();
+    const title = (document.getElementById('paperTitle').value||'').trim();
+    const content = (document.getElementById('paperContent').value||'').trim();
     if(!currentTarget){ toast('대상이 없습니다.'); return; }
     if(!title || !content){ toast('제목과 내용을 입력해 주세요'); return; }
     try{
