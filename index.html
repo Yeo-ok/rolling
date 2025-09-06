@@ -189,11 +189,11 @@
             <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             뒤로가기
           </button>
-          <div class="h"><span id="adminTargetName"></span>님에게 쓰인 글 (제목만)</div>
+        <div class="h"><span id="adminTargetName"></span>님에게 쓰인 글 (제목만)</div>
           <div></div>
         </div>
         <div class="content">
-          <div class="sub" style="margin-bottom:8px">요청에 따라 <b>작성자 정보는 숨김</b> 처리되었습니다.</div>
+          <div class="sub" style="margin-bottom:8px">요청에 따라 <b>제목만 표시</b>합니다. 제목을 누르면 큰 화면으로 내용이 열립니다.</div>
           <div id="adminTitleList" class="list"></div>
         </div>
       </div>
@@ -259,8 +259,12 @@
   // ===== Firestore (무인증) =====
   class Store {
     constructor(cfg){
-      this.app = firebase.initializeApp(cfg);
-      this.db = firebase.firestore();
+      // SDK 로드/중복 초기화 가드
+      if(!window.firebase || !firebase.initializeApp){
+        throw new Error('Firebase SDK가 아직 로드되지 않았습니다.');
+      }
+      this.app = (firebase.apps && firebase.apps.length) ? firebase.app() : firebase.initializeApp(cfg);
+      this.db = this.app.firestore();
       this.uid = localStorage.getItem('anonUid') || this._id();
       localStorage.setItem('anonUid', this.uid);
       window.addEventListener('beforeunload', ()=>this._presence(false).catch(()=>{}));
@@ -322,6 +326,7 @@
       return {id:ref.id, to, authorName, title, content};
     }
     async listMyPapersTo(to, authorName){
+      // 인덱스 없이 동작(정렬은 클라이언트)
       const snap = await this.colPapers().where('to','==',to).where('authorName','==',authorName).get();
       const arr = snap.docs.map(d=>({id:d.id, ...d.data()}));
       arr.sort((a,b)=> (toMillis(b.updatedAt)||toMillis(b.createdAt)) - (toMillis(a.updatedAt)||toMillis(a.createdAt)));
@@ -480,15 +485,19 @@
     }catch(e){ toast('글을 불러오지 못했습니다: '+(e.message||e.code)); }
   }
 
-  // ===== 초기화 및 이벤트 =====
-  (function init(){
-    // Firebase
+  // ===== 초기화 및 이벤트 (SDK 로드 이후) =====
+  function initApp(){
+    // Firebase 준비
     try{
+      if (!window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.apiKey) {
+        throw new Error('FIREBASE_CONFIG 누락 또는 잘못된 설정');
+      }
       store = new Store(window.FIREBASE_CONFIG);
       $('#statusArea').innerHTML = `백엔드: <b>Firestore</b> 연결 준비 · <span class="sub">인증 없음(지인용)</span>`;
     }catch(e){
-      $('#statusArea').innerHTML = '<span style="color:#b91c1c">Firebase 초기화 실패</span>';
       console.error(e);
+      $('#statusArea').innerHTML = `<span style="color:#b91c1c">Firebase 초기화 실패:</span> <span class="sub">${e.message || e.code || '알 수 없는 오류'}</span>`;
+      return; // 이후 바인딩 중단
     }
 
     // 입장
@@ -521,10 +530,8 @@
       catch(e){ toast('초기화 중 오류: '+(e.message||e.code)); }
     });
 
-    // 뒤로가기 공통
-    $('#backFromMain').addEventListener('click', async ()=>{ // 메인에서도 뒤로가기를 원하셔서 → 로그인으로
-      try{ await store.signOut(); }catch{} goTo('loginView'); stack.length=0;
-    });
+    // 뒤로가기
+    $('#backFromMain').addEventListener('click', async ()=>{ try{ await store.signOut(); }catch{} goTo('loginView'); stack.length=0; });
     $('#backWrite').addEventListener('click', goBack);
     $('#cancelWrite').addEventListener('click', goBack);
     $('#backManage').addEventListener('click', goBack);
@@ -543,7 +550,8 @@
         goBack();
       }catch(e){ toast('저장 중 오류: '+(e.message||e.code)); }
     });
-  })();
+  }
+  window.addEventListener('load', initApp);
   </script>
 </body>
 </html>
