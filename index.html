@@ -100,7 +100,7 @@
           <button id="enterBtn">입장</button>
         </div>
         <div class="note" style="margin-top:12px">
-          • 이 버전은 인증 없이 누구나 접속 가능합니다.<br/>
+          • 이 버전은 인증 없이 누구나 접속 가능합니다.
         </div>
       </div>
     </section>
@@ -115,7 +115,7 @@
           </div>
           <div class="search">
             <input id="filterInput" type="text" placeholder="이름 검색…" />
-            <button id="resetBtn" class="danger hidden">전체 초기화(글)</button>
+            <button id="resetBtn" class="danger hidden">전체 초기화(글+참가자)</button>
             <button id="logoutBtn" class="outline">나가기</button>
           </div>
         </div>
@@ -180,7 +180,7 @@
     <div id="toast" class="toast"></div>
   </div>
 
-  <!-- 🔧 Firebase 설정(당신이 올린 값 사용) -->
+  <!-- 🔧 Firebase 설정(당신이 올린 값) -->
   <script>
     window.FIREBASE_CONFIG = {
       apiKey: "AIzaSyA2sTHW22VtoAIXd2P8b9Nift0c-WPSLdM",
@@ -195,7 +195,15 @@
   <script>
   // ========== 유틸 ==========
   const $ = sel => document.querySelector(sel);
-  const toast = (msg, ms=1800) => { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), ms); };
+  const toast = (msg, ms=2200) => { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), ms); };
+  const toMillis = (v)=>{
+    try{
+      if(!v) return 0;
+      if(typeof v.toDate==='function') return v.toDate().getTime();
+      if(typeof v==='number') return v;
+      const d = new Date(v); return isNaN(d)?0:d.getTime();
+    }catch{ return 0; }
+  };
 
   // ========== 상태 ==========
   const state = { user: null, role: 'user', filter: '' };
@@ -244,6 +252,8 @@
           const total = papersSnap.docs.filter(x=>x.data().to===person.name).length;
           const own = papersSnap.docs.filter(x=>x.data().to===person.name && x.data().authorName===mine).length;
           person.countTotal = total; person.countMine = own;
+          // 온라인 표시가 없으면 false로 기본값
+          if(typeof person.online!=='boolean') person.online = false;
         }
         arr.sort((a,b)=> a.name.localeCompare(b.name,'ko'));
         cb(arr);
@@ -267,14 +277,18 @@
       return {id: doc.id, to, authorName, title, content};
     }
     async listMyPapersTo(to, authorName){
-      const snap = await this.colPapers()
-        .where('to','==',to).where('authorName','==',authorName).orderBy('updatedAt','desc').get();
-      return snap.docs.map(d=>({id:d.id, ...d.data()}));
+      // 🔧 인덱스 없이 동작하도록 orderBy 제거 → 클라이언트 정렬
+      const snap = await this.colPapers().where('to','==',to).where('authorName','==',authorName).get();
+      const arr = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      arr.sort((a,b)=> (toMillis(b.updatedAt)||toMillis(b.createdAt)) - (toMillis(a.updatedAt)||toMillis(a.createdAt)));
+      return arr;
     }
     async listAllTo(to){
-      const snap = await this.colPapers()
-        .where('to','==',to).orderBy('updatedAt','desc').get();
-      return snap.docs.map(d=>({id:d.id, ...d.data()}));
+      // 🔧 인덱스 없이 동작하도록 orderBy 제거 → 클라이언트 정렬
+      const snap = await this.colPapers().where('to','==',to).get();
+      const arr = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      arr.sort((a,b)=> (toMillis(b.updatedAt)||toMillis(b.createdAt)) - (toMillis(a.updatedAt)||toMillis(a.createdAt)));
+      return arr;
     }
     async updatePaper(id, {title, content}){
       await this.colPapers().doc(id).update({
@@ -286,17 +300,27 @@
     async deletePaper(id){
       await this.colPapers().doc(id).delete();
     }
-    async resetAllPapers(){
-      let total = 0;
+    async resetAll(){ // 🔥 글 + 참가자 전체 삭제
+      let totalP = 0, totalU = 0;
+      // papers
       while(true){
         const snap = await this.colPapers().limit(450).get();
         if(snap.empty) break;
         const batch = this.db.batch();
         snap.docs.forEach(doc=> batch.delete(doc.ref));
         await batch.commit();
-        total += snap.docs.length;
+        totalP += snap.docs.length;
       }
-      return total;
+      // participants (관리자 이름 문서는 애초에 안 만들지만 혹시 있으시면 같이 삭제)
+      while(true){
+        const snap = await this.colParticipants().limit(450).get();
+        if(snap.empty) break;
+        const batch = this.db.batch();
+        snap.docs.forEach(doc=> batch.delete(doc.ref));
+        await batch.commit();
+        totalU += snap.docs.length;
+      }
+      return {papers: totalP, participants: totalU};
     }
   }
 
@@ -389,32 +413,40 @@
 
   async function openManage(target){
     manageTargetLabel.textContent = `대상 ${target}`;
-    const mine = await store.listMyPapersTo(target, state.user.name);
-    myList.innerHTML = '';
-    if(mine.length===0){
-      myList.innerHTML = '<div class="center muted item">아직 작성한 글이 없습니다.</div>';
-    }else{
-      for(const p of mine){
-        const date = new Date(p.updatedAt?.toDate?.() || p.updatedAt || p.createdAt?.toDate?.() || p.createdAt || Date.now());
-        const item = document.createElement('div');
-        item.className = 'item';
-        item.innerHTML = `
-          <b>${p.title || '(제목 없음)'}</b>
-          <div class="muted" style="font-size:12px; margin-bottom:8px">${new Date(date).toLocaleString()}</div>
-          <div style="white-space:pre-wrap">${p.content || ''}</div>
-          <div style="margin-top:8px; display:flex; gap:8px; justify-content:flex-end">
-            <button class="outline" data-act="edit">수정</button>
-            <button class="danger" data-act="del">삭제</button>
-          </div>
-        `;
-        item.querySelector('[data-act="edit"]').onclick = ()=>{ currentTarget = target; openWrite({mode:'edit', paper:p}); };
-        item.querySelector('[data-act="del"]').onclick = async ()=>{
-          if(confirm('이 글을 삭제할까요?')){ await store.deletePaper(p.id); toast('삭제되었습니다.'); openManage(target); }
-        };
-        myList.appendChild(item);
+    try{
+      const mine = await store.listMyPapersTo(target, state.user.name);
+      myList.innerHTML = '';
+      if(mine.length===0){
+        myList.innerHTML = '<div class="center muted item">아직 작성한 글이 없습니다.</div>';
+      }else{
+        for(const p of mine){
+          const date = new Date(toMillis(p.updatedAt) || toMillis(p.createdAt) || Date.now());
+          const item = document.createElement('div');
+          item.className = 'item';
+          item.innerHTML = `
+            <b>${p.title || '(제목 없음)'}</b>
+            <div class="muted" style="font-size:12px; margin-bottom:8px">${new Date(date).toLocaleString()}</div>
+            <div style="white-space:pre-wrap">${p.content || ''}</div>
+            <div style="margin-top:8px; display:flex; gap:8px; justify-content:flex-end">
+              <button class="outline" data-act="edit">수정</button>
+              <button class="danger" data-act="del">삭제</button>
+            </div>
+          `;
+          item.querySelector('[data-act="edit"]').onclick = ()=>{ currentTarget = target; openWrite({mode:'edit', paper:p}); };
+          item.querySelector('[data-act="del"]').onclick = async ()=>{
+            if(confirm('이 글을 삭제할까요?')){ 
+              try{ await store.deletePaper(p.id); toast('삭제되었습니다.'); openManage(target); }
+              catch(e){ console.error(e); toast('삭제 실패: ' + (e.message||e.code)); }
+            }
+          };
+          myList.appendChild(item);
+        }
       }
+      manageDialog.showModal();
+    }catch(e){
+      console.error(e);
+      toast('목록 불러오기 실패: ' + (e.message||e.code));
     }
-    manageDialog.showModal();
   }
   function closeManage(){ manageDialog.close(); myList.innerHTML=''; }
 
@@ -422,25 +454,30 @@
     adminTargetName.textContent = target;
     const isSuper = state.role==='mmaster';
     adminAnonHint.innerHTML = isSuper ? '작성자 표시 <span class="hl">(mMaster)</span>' : '작성자 숨김 <span class="hl">(Master)</span>';
-    const all = await store.listAllTo(target);
-    adminList.innerHTML='';
-    if(all.length===0){
-      adminList.innerHTML = '<div class="center muted item">아직 글이 없습니다.</div>';
-    }else{
-      for(const p of all){
-        const date = new Date(p.updatedAt?.toDate?.() || p.updatedAt || p.createdAt?.toDate?.() || p.createdAt || Date.now());
-        const authorLabel = isSuper ? `<span class="warn">작성자: ${p.authorName || '알수없음'}</span>` : `<span class="muted">작성자: 익명</span>`;
-        const item = document.createElement('div');
-        item.className='item';
-        item.innerHTML = `
-          <b>${p.title || '(제목 없음)'}</b>
-          <div class="muted" style="font-size:12px; margin-bottom:8px">${authorLabel} · ${new Date(date).toLocaleString()}</div>
-          <div style="white-space:pre-wrap">${p.content || ''}</div>
-        `;
-        adminList.appendChild(item);
+    try{
+      const all = await store.listAllTo(target);
+      adminList.innerHTML='';
+      if(all.length===0){
+        adminList.innerHTML = '<div class="center muted item">아직 글이 없습니다.</div>';
+      }else{
+        for(const p of all){
+          const date = new Date(toMillis(p.updatedAt) || toMillis(p.createdAt) || Date.now());
+          const authorLabel = isSuper ? `<span class="warn">작성자: ${p.authorName || '알수없음'}</span>` : `<span class="muted">작성자: 익명</span>`;
+          const item = document.createElement('div');
+          item.className='item';
+          item.innerHTML = `
+            <b>${p.title || '(제목 없음)'}</b>
+            <div class="muted" style="font-size:12px; margin-bottom:8px">${authorLabel} · ${new Date(date).toLocaleString()}</div>
+            <div style="white-space:pre-wrap">${p.content || ''}</div>
+          `;
+          adminList.appendChild(item);
+        }
       }
+      adminDialog.showModal();
+    }catch(e){
+      console.error(e);
+      toast('관리자 열람 실패: ' + (e.message||e.code));
     }
-    adminDialog.showModal();
   }
   function closeAdmin(){ adminDialog.close(); adminList.innerHTML=''; }
 
@@ -469,7 +506,7 @@
       toast('입장했습니다.');
     }catch(e){
       console.error(e);
-      toast('입장 실패');
+      toast('입장 실패: ' + (e.message||e.code));
     }
   });
 
@@ -480,18 +517,18 @@
 
   document.getElementById('filterInput').addEventListener('input', (e)=>{ state.filter = e.target.value; refreshPeople(); });
 
-  // mMaster 전용: 글 전체 초기화
+  // mMaster 전용: 글+참가자 전체 초기화
   document.getElementById('resetBtn').addEventListener('click', async ()=>{
     if(state.role!=='mmaster') return;
     const phrase = '전체 초기화';
-    const input = prompt(`정말 모든 글을 삭제할까요?\n되돌릴 수 없습니다!\n확인 문구를 입력하세요: ${phrase}`);
+    const input = prompt(`정말 모든 글과 참가자 목록을 삭제할까요?\n되돌릴 수 없습니다!\n확인 문구를 입력하세요: ${phrase}`);
     if(input!==phrase){ toast('취소되었습니다.'); return; }
     try{
-      const deleted = await store.resetAllPapers();
-      toast(`초기화 완료: ${deleted}건 삭제됨`);
+      const {papers, participants} = await store.resetAll();
+      toast(`초기화 완료: 글 ${papers}건 · 참가자 ${participants}명 삭제`);
     }catch(e){
       console.error(e);
-      toast('초기화 중 오류');
+      toast('초기화 중 오류: ' + (e.message||e.code));
     }
   });
 
@@ -512,7 +549,7 @@
       closeWrite();
     }catch(e){
       console.error(e);
-      toast('저장 중 오류');
+      toast('저장 중 오류: ' + (e.message||e.code));
     }
   });
   </script>
