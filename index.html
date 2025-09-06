@@ -3,78 +3,88 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>롤링페이퍼 - 실시간 (권한 없이 누구나 접속, 방 없음)</title>
+  <title>롤링페이퍼 (밝은테마 · 권한없이접속 · 팝업없음)</title>
   <style>
     :root{
-      --bg:#0f1226; --card:#171a35; --muted:#9aa3b2; --text:#e9ecf1;
-      --accent:#5f7cff; --accent-2:#a8ff60; --danger:#ff5f7a; --warning:#ffc15f; --ok:#35d49a;
-      --shadow:0 10px 30px rgba(0,0,0,.35); --radius:14px;
+      --bg:#ffffff; --text:#111827; --muted:#6b7280;
+      --card:#ffffff; --border:#e5e7eb; --soft:#f8fafc;
+      --accent:#2563eb; --accent-2:#10b981;
+      --danger:#ef4444; --warning:#f59e0b; --ok:#16a34a;
+      --shadow:0 8px 20px rgba(0,0,0,.06); --radius:14px;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
-      margin:0;
+      margin:0; background:var(--bg); color:var(--text);
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-      background: radial-gradient(1200px 800px at 20% -10%, #1a1f45 0%, transparent 60%),
-                  radial-gradient(800px 600px at 90% 10%, #1a2b45 0%, transparent 60%),
-                  var(--bg);
-      color:var(--text);
     }
+    a{color:var(--accent); text-decoration:none}
     .wrap{max-width:1100px; margin:0 auto; padding:24px}
     header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px;}
     .logo{display:flex; gap:10px; align-items:center}
-    .logo i{width:36px; height:36px; background:linear-gradient(135deg,var(--accent),#9a7cff); border-radius:10px; box-shadow:var(--shadow)}
-    .tag{padding:6px 10px; border:1px solid #2a2f56; border-radius:999px; color:var(--muted); font-size:12px}
-    .card{background:linear-gradient(180deg, rgba(255,255,255,.02), transparent 60%), var(--card); border:1px solid #2a2f56; border-radius:var(--radius); box-shadow:var(--shadow);}
-    .login{max-width:520px; margin:10vh auto 0; padding:24px;}
-    .row{display:flex; gap:10px; align-items:center}
-    input[type=text], textarea{width:100%; padding:12px 14px; border-radius:12px; border:1px solid #2a2f56; background:#0f1330; color:var(--text); outline:none}
-    input[type=text]:focus, textarea:focus{border-color:var(--accent)}
-    textarea{min-height:120px; resize:vertical}
-    button{border:none; border-radius:12px; padding:10px 14px; cursor:pointer; font-weight:700; background:var(--accent); color:white; box-shadow:var(--shadow)}
-    button.outline{background:transparent; border:1px solid #334; color:var(--text)}
-    button.ghost{background:transparent; color:var(--muted); box-shadow:none}
-    button.danger{background:var(--danger)} button.ok{background:var(--ok); color:#072417}
-    button:disabled{opacity:.5; cursor:not-allowed}
+    .logo i{width:36px; height:36px; background:linear-gradient(135deg,#60a5fa,#34d399); border-radius:10px; box-shadow:var(--shadow)}
+    .tag{padding:6px 10px; border:1px solid var(--border); border-radius:999px; color:var(--muted); font-size:12px; background:var(--soft)}
+    .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow);}
+    .section{padding:16px}
+    .topbar{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 16px; border-bottom:1px solid var(--border); background:var(--soft); border-top-left-radius:var(--radius); border-top-right-radius:var(--radius)}
+    .content{padding:16px}
+    .h{font-size:20px; font-weight:800}
+    .sub{font-size:13px; color:var(--muted)}
     .grid{display:grid; gap:14px; grid-template-columns: repeat( auto-fill, minmax(230px, 1fr) );}
-    .person{padding:16px; display:flex; flex-direction:column; gap:10px; position:relative; overflow:hidden}
+    .person{padding:16px; display:flex; flex-direction:column; gap:10px; position:relative}
     .counts{display:flex; gap:10px; color:var(--muted); font-size:12px}
-    .counts span{padding:4px 8px; border-radius:999px; background:#0f1330; border:1px solid #2a2f56}
-    .pill{position:absolute; right:10px; top:10px; font-size:11px; color:#c5cbe3; padding:4px 8px; border-radius:999px; background:#0c0f24; border:1px solid #283056}
+    .counts span{padding:4px 8px; border-radius:999px; background:var(--soft); border:1px solid var(--border)}
+    .pill{position:absolute; right:10px; top:10px; font-size:11px; color:#0b7; padding:4px 8px; border-radius:999px; background:#ecfeff; border:1px solid #99f}
     .toolbar{display:flex; gap:8px; flex-wrap:wrap}
     .hidden{display:none !important}
-    .muted{color:var(--muted)}
-    .center{display:flex; align-items:center; justify-content:center; text-align:center}
-    .section{padding:16px}
-    .h{font-size:18px; font-weight:800}
-    .sub{font-size:12px; color:var(--muted)}
-    .list{display:flex; flex-direction:column; gap:8px}
-    .item{padding:12px; border:1px dashed #2a2f56; border-radius:12px; background:#0f1330}
-    .item b{display:block; margin-bottom:6px}
-    .topbar{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 16px; border-bottom:1px solid #2a2f56}
-    .content{padding:16px}
-    .search{display:flex; gap:10px}
-    .toast{position: fixed; left:50%; bottom: 22px; transform: translateX(-50%) translateY(20px); transition:.25s; opacity:0; background:#0c112a; color:var(--text); border:1px solid #283056; padding:10px 14px; border-radius:12px; box-shadow: var(--shadow); z-index:99;}
+    .row{display:flex; gap:10px; align-items:center}
+    input[type=text], textarea{
+      width:100%; padding:12px 14px; border-radius:12px;
+      border:1px solid var(--border); background:#fff; color:var(--text); outline:none; transition:.15s;
+    }
+    input[type=text]:focus, textarea:focus{border-color:#93c5fd; box-shadow:0 0 0 4px #dbeafe}
+    textarea{min-height:140px; resize:vertical; line-height:1.5}
+    button{
+      border:none; border-radius:12px; padding:10px 14px; cursor:pointer; font-weight:700;
+      background:var(--accent); color:white; box-shadow:var(--shadow); transition:.12s;
+    }
+    button.outline{background:#fff; border:1px solid var(--border); color:var(--text)}
+    button.ghost{background:transparent; color:var(--muted); box-shadow:none}
+    button.danger{background:var(--danger)} button.ok{background:var(--accent-2); color:#064e3b}
+    button:disabled{opacity:.5; cursor:not-allowed}
+    .note{padding:10px 12px; background:var(--soft); border:1px solid var(--border); border-radius:12px; color:#374151}
+    .toast{
+      position: fixed; left:50%; bottom: 22px; transform: translateX(-50%) translateY(20px);
+      transition:.25s; opacity:0; background:#111827; color:white; border:1px solid rgba(255,255,255,.08);
+      padding:10px 14px; border-radius:12px; box-shadow: var(--shadow); z-index:99;
+    }
     .toast.show{opacity:1; transform: translateX(-50%) translateY(0)}
-    .role-badge{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid #2a2f56; color:#cbd2ee}
+    .role-badge{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid var(--border); color:#1f2937; background:#f3f4f6}
     .online-dot{width:8px; height:8px; border-radius:50%; background:var(--ok); display:inline-block; margin-right:6px}
-    .warn{color:var(--warning)} .hl{color:var(--accent-2); font-weight:800}
+    /* Back 버튼 */
+    .back{
+      display:inline-flex; align-items:center; gap:8px; background:#fff; color:#111;
+      border:1px solid var(--border); border-radius:10px; padding:8px 12px; cursor:pointer;
+    }
+    .back svg{width:18px; height:18px}
+    /* 큰 글 보기 */
+    .big h1{font-size:28px; margin:0 0 10px 0}
+    .big .meta{color:var(--muted); margin-bottom:16px}
+    .big .body{font-size:18px; line-height:1.8; white-space:pre-wrap}
   </style>
 
   <!--
-    ⚠️ 보안 안내(테스트/지인용)
-    - 이 버전은 Firebase Authentication을 사용하지 않습니다. 누구나 이름만으로 접속합니다.
-    - Firestore 규칙을 임시로 전체 허용해야 합니다. (배포용 권장 X)
-      rules_version = '2';
-      service cloud.firestore {
-        match /databases/{database}/documents {
-          match /{document=**} { allow read, write: if true; }
-        }
+    ⚠️ 테스트/지인용 규칙(무인증)
+    Firestore Rules → 아래를 Publish 해야 동작합니다 (운영용X)
+    rules_version = '2';
+    service cloud.firestore {
+      match /databases/{database}/documents {
+        match /{document=**} { allow read, write: if true; }
       }
-    - 운영 전에는 반드시 인증/권한 규칙을 복구하세요.
+    }
   -->
 
-  <!-- Firebase SDK (앱 + Firestore만) -->
+  <!-- Firebase SDK -->
   <script defer src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
 </head>
@@ -84,18 +94,18 @@
       <div class="logo">
         <i></i>
         <div>
-          <div><b>롤링페이퍼</b> <span class="tag">실시간</span></div>
-          <div class="sub">이름으로 접속 · 다른 사람에게만 작성 · 내 글만 열람/수정/삭제 · 관리자 열람</div>
+          <div><b>롤링페이퍼</b> <span class="tag">실시간 · 밝은테마</span></div>
+          <div class="sub">이름으로 접속 · 다른 사람에게만 작성 · 내 글만 관리 · 관리자 열람</div>
         </div>
       </div>
       <div id="statusArea" class="sub"></div>
     </header>
 
-    <!-- 로그인 -->
-    <section id="login" class="card login">
+    <!-- ====== 뷰: 로그인 ====== -->
+    <section id="loginView" class="card section">
       <div class="h">입장하기</div>
       <div class="section">
-        <div class="row">
+        <div class="row" style="margin-top:10px">
           <input id="nameInput" type="text" placeholder="이름" maxlength="24" />
           <button id="enterBtn">입장</button>
         </div>
@@ -105,15 +115,19 @@
       </div>
     </section>
 
-    <!-- 메인 -->
-    <section id="main" class="hidden">
-      <div class="card section">
+    <!-- ====== 뷰: 메인(참가자 그리드) ====== -->
+    <section id="mainView" class="hidden">
+      <div class="card">
         <div class="topbar">
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+            <button class="back" id="backFromMain">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              뒤로가기
+            </button>
             <span id="hello"></span>
             <span id="roleBadge" class="role-badge"></span>
           </div>
-          <div class="search">
+          <div class="row">
             <input id="filterInput" type="text" placeholder="이름 검색…" />
             <button id="resetBtn" class="danger hidden">전체 초기화(글+참가자)</button>
             <button id="logoutBtn" class="outline">나가기</button>
@@ -125,62 +139,89 @@
       </div>
     </section>
 
-    <!-- 모달: 글쓰기/수정 -->
-    <dialog id="writeDialog">
-      <div class="card modal">
+    <!-- ====== 뷰: 글쓰기/수정 ====== -->
+    <section id="writeView" class="hidden">
+      <div class="card">
         <div class="topbar">
-          <div class="h"><span id="writeTitle">롤링페이퍼 작성</span></div>
-          <button class="ghost" onclick="closeWrite()">닫기</button>
+          <button class="back" id="backWrite">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            뒤로가기
+          </button>
+          <div class="h" id="writeTitle">롤링페이퍼 작성</div>
+          <div></div>
         </div>
         <div class="content">
-          <div class="sub muted" style="margin-bottom:8px"><span id="writeTargetLabel"></span></div>
+          <div class="sub" style="margin-bottom:8px"><span id="writeTargetLabel"></span></div>
           <input id="paperTitle" type="text" placeholder="제목" />
           <div style="height:10px"></div>
           <textarea id="paperContent" placeholder="내용"></textarea>
-          <div class="note" style="margin-top:10px">
-            <b>안내</b> · 상대방에게 남기는 메시지입니다. 제목과 내용만 저장됩니다.
+          <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px">
+            <button class="outline" id="cancelWrite">취소</button>
+            <button id="savePaperBtn">저장</button>
           </div>
         </div>
-        <div class="footer">
-          <button class="outline" onclick="closeWrite()">취소</button>
-          <button id="savePaperBtn">저장</button>
-        </div>
       </div>
-    </dialog>
+    </section>
 
-    <!-- 모달: 내 글 관리 -->
-    <dialog id="manageDialog">
-      <div class="card modal">
+    <!-- ====== 뷰: 내 글 관리(목록/수정/삭제) ====== -->
+    <section id="manageView" class="hidden">
+      <div class="card">
         <div class="topbar">
+          <button class="back" id="backManage">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            뒤로가기
+          </button>
           <div class="h">내 글 관리</div>
-          <button class="ghost" onclick="closeManage()">닫기</button>
+          <div></div>
         </div>
         <div class="content">
-          <div class="sub muted" style="margin-bottom:10px"><span id="manageTargetLabel"></span>에 대해 내가 쓴 글 목록</div>
+          <div class="sub" style="margin-bottom:10px"><span id="manageTargetLabel"></span>에 대해 내가 쓴 글 목록</div>
           <div id="myList" class="list"></div>
         </div>
       </div>
-    </dialog>
+    </section>
 
-    <!-- 모달: 관리자 열람 -->
-    <dialog id="adminDialog">
-      <div class="card modal">
+    <!-- ====== 뷰: 관리자 - 제목 목록 ====== -->
+    <section id="adminListView" class="hidden">
+      <div class="card">
         <div class="topbar">
-          <div class="h"><span id="adminTargetName"></span> 님에게 쓰인 전체 롤링페이퍼</div>
-          <button class="ghost" onclick="closeAdmin()">닫기</button>
+          <button class="back" id="backAdminList">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            뒤로가기
+          </button>
+          <div class="h"><span id="adminTargetName"></span>님에게 쓰인 글 (제목만)</div>
+          <div></div>
         </div>
         <div class="content">
-          <div class="sub muted">관리자 열람 화면입니다. <span id="adminAnonHint"></span></div>
-          <div style="height:10px"></div>
-          <div id="adminList" class="list"></div>
+          <div class="sub" style="margin-bottom:8px">요청에 따라 <b>작성자 정보는 숨김</b> 처리되었습니다.</div>
+          <div id="adminTitleList" class="list"></div>
         </div>
       </div>
-    </dialog>
+    </section>
+
+    <!-- ====== 뷰: 관리자 - 단일 글 크게 보기 ====== -->
+    <section id="adminReadView" class="hidden">
+      <div class="card big">
+        <div class="topbar">
+          <button class="back" id="backAdminRead">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            뒤로가기
+          </button>
+          <div class="h">글 상세</div>
+          <div></div>
+        </div>
+        <div class="content">
+          <h1 id="adminReadTitle"></h1>
+          <div class="meta" id="adminReadMeta"></div>
+          <div class="body" id="adminReadContent"></div>
+        </div>
+      </div>
+    </section>
 
     <div id="toast" class="toast"></div>
   </div>
 
-  <!-- 🔧 Firebase 설정(당신이 올린 값) -->
+  <!-- 🔧 Firebase 설정 -->
   <script>
     window.FIREBASE_CONFIG = {
       apiKey: "AIzaSyA2sTHW22VtoAIXd2P8b9Nift0c-WPSLdM",
@@ -193,31 +234,38 @@
   </script>
 
   <script>
-  // ========== 유틸 ==========
-  const $ = sel => document.querySelector(sel);
-  const toast = (msg, ms=2200) => { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), ms); };
-  const toMillis = (v)=>{
-    try{
-      if(!v) return 0;
-      if(typeof v.toDate==='function') return v.toDate().getTime();
-      if(typeof v==='number') return v;
-      const d = new Date(v); return isNaN(d)?0:d.getTime();
-    }catch{ return 0; }
+  // ===== 공통 유틸 =====
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const toast = (m,ms=2000)=>{ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),ms); }
+  const toMillis = v => (v?.toDate?.() ? v.toDate().getTime() : (typeof v==='number'?v:(isNaN(new Date(v))?0:+new Date(v))));
+  const formatDT = ts => new Date(ts||Date.now()).toLocaleString();
+
+  // ===== 상태 & 라우팅 =====
+  const state = { user:null, role:'user', filter:'', view:'login' };
+  const viewIds = ['loginView','mainView','writeView','manageView','adminListView','adminReadView'];
+  const stack = [];
+  const goTo = (id, push=true)=>{
+    viewIds.forEach(v=>$('#'+v).classList.toggle('hidden', v!==id));
+    if(push) stack.push(state.view);
+    state.view = id;
+  };
+  const goBack = ()=>{
+    const prev = stack.pop();
+    if(!prev){ if(state.view!=='loginView'){ goTo('loginView',false);} return; }
+    goTo(prev,false);
   };
 
-  // ========== 상태 ==========
-  const state = { user: null, role: 'user', filter: '' };
-
-  // ========== Firestore (무인증) ==========
+  // ===== Firestore (무인증) =====
   class Store {
-    constructor(config){
-      this.app = firebase.initializeApp(config);
+    constructor(cfg){
+      this.app = firebase.initializeApp(cfg);
       this.db = firebase.firestore();
       this.uid = localStorage.getItem('anonUid') || this._id();
       localStorage.setItem('anonUid', this.uid);
       window.addEventListener('beforeunload', ()=>this._presence(false).catch(()=>{}));
     }
-    _id(){ if(window.crypto?.randomUUID) return crypto.randomUUID(); return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+    _id(){ return (crypto.randomUUID?.() ?? (Math.random().toString(36).slice(2)+Date.now().toString(36))); }
     colParticipants(){ return this.db.collection('participants'); }
     colPapers(){ return this.db.collection('papers'); }
 
@@ -225,12 +273,12 @@
       this.name = name;
       if(!['Master','mMaster'].includes(name)){
         await this.colParticipants().doc(name).set({
-          name, uid: this.uid, online:true,
+          name, uid:this.uid, online:true,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           lastActive: firebase.firestore.FieldValue.serverTimestamp()
         }, {merge:true});
       }
-      return { uid: this.uid, name };
+      return {uid:this.uid, name};
     }
     async _presence(online){
       if(!this.name || ['Master','mMaster'].includes(this.name)) return;
@@ -241,19 +289,15 @@
     async signOut(){ await this._presence(false); }
 
     onPeopleChanged(cb){
-      const update = async () => {
-        const [pSnap, papersSnap] = await Promise.all([
-          this.colParticipants().get(),
-          this.colPapers().get(),
-        ]);
+      const update = async ()=>{
+        const [pSnap, papersSnap] = await Promise.all([ this.colParticipants().get(), this.colPapers().get() ]);
         const mine = this.name;
         const arr = pSnap.docs.map(d=>({name:d.id, ...(d.data()||{})}));
         for(const person of arr){
-          const total = papersSnap.docs.filter(x=>x.data().to===person.name).length;
-          const own = papersSnap.docs.filter(x=>x.data().to===person.name && x.data().authorName===mine).length;
-          person.countTotal = total; person.countMine = own;
-          // 온라인 표시가 없으면 false로 기본값
-          if(typeof person.online!=='boolean') person.online = false;
+          const all = papersSnap.docs.map(d=>d.data());
+          person.countTotal = all.filter(x=>x.to===person.name).length;
+          person.countMine  = all.filter(x=>x.to===person.name && x.authorName===mine).length;
+          if(typeof person.online!=='boolean') person.online=false;
         }
         arr.sort((a,b)=> a.name.localeCompare(b.name,'ko'));
         cb(arr);
@@ -263,295 +307,243 @@
     }
 
     async ensurePerson(name){
-      const doc = await this.colParticipants().doc(name).get();
-      if(!doc.exists && !['Master','mMaster'].includes(name)){
+      const d = await this.colParticipants().doc(name).get();
+      if(!d.exists && !['Master','mMaster'].includes(name)){
         await this.colParticipants().doc(name).set({name, online:false, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
       }
     }
+
     async createPaper({to, authorName, title, content}){
-      const doc = await this.colPapers().add({
-        to, authorName, authorUid: this.uid, title, content,
+      const ref = await this.colPapers().add({
+        to, authorName, authorUid:this.uid, title, content,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      return {id: doc.id, to, authorName, title, content};
+      return {id:ref.id, to, authorName, title, content};
     }
     async listMyPapersTo(to, authorName){
-      // 🔧 인덱스 없이 동작하도록 orderBy 제거 → 클라이언트 정렬
       const snap = await this.colPapers().where('to','==',to).where('authorName','==',authorName).get();
       const arr = snap.docs.map(d=>({id:d.id, ...d.data()}));
       arr.sort((a,b)=> (toMillis(b.updatedAt)||toMillis(b.createdAt)) - (toMillis(a.updatedAt)||toMillis(a.createdAt)));
       return arr;
     }
     async listAllTo(to){
-      // 🔧 인덱스 없이 동작하도록 orderBy 제거 → 클라이언트 정렬
       const snap = await this.colPapers().where('to','==',to).get();
       const arr = snap.docs.map(d=>({id:d.id, ...d.data()}));
       arr.sort((a,b)=> (toMillis(b.updatedAt)||toMillis(b.createdAt)) - (toMillis(a.updatedAt)||toMillis(a.createdAt)));
       return arr;
     }
-    async updatePaper(id, {title, content}){
-      await this.colPapers().doc(id).update({
-        title, content, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+    async getPaper(id){
       const d = await this.colPapers().doc(id).get();
-      return {id, ...d.data()};
+      return {id, ...(d.data()||{})};
     }
-    async deletePaper(id){
-      await this.colPapers().doc(id).delete();
+    async updatePaper(id, data){
+      await this.colPapers().doc(id).update({...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp()});
     }
-    async resetAll(){ // 🔥 글 + 참가자 전체 삭제
-      let totalP = 0, totalU = 0;
-      // papers
+    async deletePaper(id){ await this.colPapers().doc(id).delete(); }
+
+    async resetAll(){ // 글 + 참가자 전체 삭제
+      let p=0,u=0;
       while(true){
-        const snap = await this.colPapers().limit(450).get();
-        if(snap.empty) break;
-        const batch = this.db.batch();
-        snap.docs.forEach(doc=> batch.delete(doc.ref));
-        await batch.commit();
-        totalP += snap.docs.length;
+        const s=await this.colPapers().limit(450).get(); if(s.empty) break;
+        const b=this.db.batch(); s.docs.forEach(d=>b.delete(d.ref)); await b.commit(); p+=s.docs.length;
       }
-      // participants (관리자 이름 문서는 애초에 안 만들지만 혹시 있으시면 같이 삭제)
       while(true){
-        const snap = await this.colParticipants().limit(450).get();
-        if(snap.empty) break;
-        const batch = this.db.batch();
-        snap.docs.forEach(doc=> batch.delete(doc.ref));
-        await batch.commit();
-        totalU += snap.docs.length;
+        const s=await this.colParticipants().limit(450).get(); if(s.empty) break;
+        const b=this.db.batch(); s.docs.forEach(d=>b.delete(d.ref)); await b.commit(); u+=s.docs.length;
       }
-      return {papers: totalP, participants: totalU};
+      return {papers:p, participants:u};
     }
   }
 
-  // ========== 초기화 ==========
-  let store = null;
-  const statusArea = document.getElementById('statusArea');
+  // ===== 전역 변수 & 요소 =====
+  let store=null, currentTarget=null, editingPaperId=null, peopleCache=[], adminCurrentList=[], adminCurrentPaper=null;
 
-  // UI refs
-  const loginEl = document.getElementById('login');
-  const mainEl = document.getElementById('main');
-  const helloEl = document.getElementById('hello');
-  const roleBadge = document.getElementById('roleBadge');
-  const peopleGrid = document.getElementById('peopleGrid');
-  const filterInput = document.getElementById('filterInput');
-  const resetBtn = document.getElementById('resetBtn');
+  const statusArea = $('#statusArea');
+  const loginEl = $('#loginView'); const mainEl = $('#mainView');
+  const writeEl = $('#writeView'); const manageEl = $('#manageView');
+  const adminListEl = $('#adminListView'); const adminReadEl = $('#adminReadView');
 
-  const writeDialog = document.getElementById('writeDialog');
-  const paperTitle = document.getElementById('paperTitle');
-  const paperContent = document.getElementById('paperContent');
-  const writeTargetLabel = document.getElementById('writeTargetLabel');
-
-  const manageDialog = document.getElementById('manageDialog');
-  const manageTargetLabel = document.getElementById('manageTargetLabel');
-  const myList = document.getElementById('myList');
-
-  const adminDialog = document.getElementById('adminDialog');
-  const adminTargetName = document.getElementById('adminTargetName');
-  const adminAnonHint = document.getElementById('adminAnonHint');
-  const adminList = document.getElementById('adminList');
-
-  let editingPaperId = null;
-  let currentTarget = null;
-  let peopleCache = [];
-
+  // ===== 공통 UI =====
   function roleOf(name){ if(name==='Master') return 'master'; if(name==='mMaster') return 'mmaster'; return 'user'; }
-  const isAdmin = () => state.role==='master' || state.role==='mmaster';
+  const isAdmin = ()=> state.role==='master' || state.role==='mmaster';
 
   function applyRoleUI(){
-    helloEl.innerHTML = `<span class="online-dot"></span><b>${state.user?.name}</b> 님 환영합니다!`;
-    roleBadge.textContent = state.role==='master' ? '관리자' : state.role==='mmaster' ? '최대 관리자' : '일반 사용자';
-    if(state.role==='mmaster') resetBtn.classList.remove('hidden'); else resetBtn.classList.add('hidden');
+    $('#hello').innerHTML = `<span class="online-dot"></span><b>${state.user?.name}</b> 님 환영합니다!`;
+    $('#roleBadge').textContent = state.role==='master' ? '관리자' : state.role==='mmaster' ? '최대 관리자' : '일반 사용자';
+    $('#resetBtn').classList.toggle('hidden', state.role!=='mmaster');
   }
 
   async function refreshPeople(){
-    const f = (state.filter||'').trim().toLowerCase();
-    const list = peopleCache.filter(p => !f || p.name.toLowerCase().includes(f));
-    peopleGrid.innerHTML = '';
-    if(list.length===0){
-      peopleGrid.innerHTML = '<div class="center muted" style="padding:40px">아직 참가자가 없습니다.</div>'; return;
-    }
+    const f=(state.filter||'').trim().toLowerCase();
+    const list=peopleCache.filter(p=>!f||p.name.toLowerCase().includes(f));
+    const grid = $('#peopleGrid'); grid.innerHTML='';
+    if(list.length===0){ grid.innerHTML='<div class="sub" style="padding:40px;text-align:center;color:var(--muted)">아직 참가자가 없습니다.</div>'; return;}
     const me = state.user?.name;
     for(const person of list){
-      const el = document.createElement('div');
-      el.className = 'person card';
-      el.innerHTML = `
-        <span class="pill">${person.online? '온라인' : '오프라인'}</span>
+      const el=document.createElement('div'); el.className='person card';
+      el.innerHTML=`
+        <span class="pill">${person.online?'온라인':'오프라인'}</span>
         <div class="h">${person.name}</div>
         <div class="counts">
-          <span title="전체">${person.countTotal ?? 0} 개</span>
-          <span title="내가 작성">${person.countMine ?? 0} 개 (내 글)</span>
+          <span>전체 ${person.countTotal??0}</span>
+          <span>내 글 ${person.countMine??0}</span>
         </div>
         <div class="toolbar">
           <button ${person.name===me?'disabled':''} data-act="write">쓰기</button>
           <button class="outline" ${person.name===me?'disabled':''} data-act="manage">수정·삭제</button>
-          ${isAdmin()? `<button class="ok" data-act="admin">관리자 열람</button>` : ''}
-        </div>
-      `;
-      el.querySelectorAll('button').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const act = btn.dataset.act;
-          if(person.name===me && (act==='write'||act==='manage')){ toast('자기 자신의 페이지에는 들어갈 수 없습니다.'); return; }
-          if(act==='write'){ currentTarget = person.name; openWrite({mode:'create'}); }
-          else if(act==='manage'){ currentTarget = person.name; openManage(person.name); }
-          else if(act==='admin'){ openAdmin(person.name); }
+          ${isAdmin()?`<button class="ok" data-act="admin">관리자 열람</button>`:''}
+        </div>`;
+      el.querySelectorAll('button').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          const act=btn.dataset.act;
+          if((act==='write'||act==='manage') && person.name===me){ toast('자기 자신의 페이지에는 들어갈 수 없습니다.'); return; }
+          if(act==='write'){ currentTarget=person.name; openWrite({mode:'create'}); }
+          if(act==='manage'){ currentTarget=person.name; openManage(person.name); }
+          if(act==='admin'){ openAdminList(person.name); }
         });
       });
-      peopleGrid.appendChild(el);
+      grid.appendChild(el);
     }
   }
 
+  // ===== 뷰: 글쓰기/수정 =====
   function openWrite({mode, paper}){
-    document.getElementById('writeTitle').textContent = mode==='edit' ? '롤링페이퍼 수정' : '롤링페이퍼 작성';
-    writeTargetLabel.textContent = `대상: ${currentTarget}`;
-    editingPaperId = (mode==='edit' && paper) ? paper.id : null;
-    paperTitle.value = paper?.title || '';
-    paperContent.value = paper?.content || '';
-    writeDialog.showModal();
+    $('#writeTitle').textContent = mode==='edit' ? '롤링페이퍼 수정' : '롤링페이퍼 작성';
+    $('#writeTargetLabel').textContent = `대상: ${currentTarget}`;
+    editingPaperId = mode==='edit' ? paper.id : null;
+    $('#paperTitle').value = paper?.title || '';
+    $('#paperContent').value = paper?.content || '';
+    goTo('writeView');
   }
-  function closeWrite(){ writeDialog.close(); editingPaperId = null; currentTarget = null; paperTitle.value=''; paperContent.value=''; }
 
+  // ===== 뷰: 내 글 관리 =====
   async function openManage(target){
-    manageTargetLabel.textContent = `대상 ${target}`;
-    try{
-      const mine = await store.listMyPapersTo(target, state.user.name);
-      myList.innerHTML = '';
-      if(mine.length===0){
-        myList.innerHTML = '<div class="center muted item">아직 작성한 글이 없습니다.</div>';
-      }else{
-        for(const p of mine){
-          const date = new Date(toMillis(p.updatedAt) || toMillis(p.createdAt) || Date.now());
-          const item = document.createElement('div');
-          item.className = 'item';
-          item.innerHTML = `
-            <b>${p.title || '(제목 없음)'}</b>
-            <div class="muted" style="font-size:12px; margin-bottom:8px">${new Date(date).toLocaleString()}</div>
-            <div style="white-space:pre-wrap">${p.content || ''}</div>
-            <div style="margin-top:8px; display:flex; gap:8px; justify-content:flex-end">
-              <button class="outline" data-act="edit">수정</button>
-              <button class="danger" data-act="del">삭제</button>
-            </div>
-          `;
-          item.querySelector('[data-act="edit"]').onclick = ()=>{ currentTarget = target; openWrite({mode:'edit', paper:p}); };
-          item.querySelector('[data-act="del"]').onclick = async ()=>{
-            if(confirm('이 글을 삭제할까요?')){ 
-              try{ await store.deletePaper(p.id); toast('삭제되었습니다.'); openManage(target); }
-              catch(e){ console.error(e); toast('삭제 실패: ' + (e.message||e.code)); }
-            }
-          };
-          myList.appendChild(item);
-        }
+    $('#manageTargetLabel').textContent = `대상 ${target}`;
+    const list = await store.listMyPapersTo(target, state.user.name);
+    const box = $('#myList'); box.innerHTML='';
+    if(list.length===0){
+      box.innerHTML='<div class="item sub" style="text-align:center">아직 작성한 글이 없습니다.</div>';
+    }else{
+      for(const p of list){
+        const el=document.createElement('div'); el.className='item';
+        const ts=formatDT(toMillis(p.updatedAt)||toMillis(p.createdAt));
+        el.innerHTML=`
+          <b>${p.title||'(제목 없음)'}</b>
+          <div class="sub" style="margin-bottom:8px">${ts}</div>
+          <div style="white-space:pre-wrap">${p.content||''}</div>
+          <div style="margin-top:8px; display:flex; gap:8px; justify-content:flex-end">
+            <button class="outline" data-act="edit">수정</button>
+            <button class="danger" data-act="del">삭제</button>
+          </div>`;
+        el.querySelector('[data-act="edit"]').onclick=()=>{ currentTarget=target; openWrite({mode:'edit', paper:p}); };
+        el.querySelector('[data-act="del"]').onclick=async ()=>{
+          if(confirm('이 글을 삭제할까요?')){
+            try{ await store.deletePaper(p.id); toast('삭제되었습니다.'); openManage(target); }catch(e){ toast('삭제 실패: '+(e.message||e.code)); }
+          }
+        };
+        box.appendChild(el);
       }
-      manageDialog.showModal();
-    }catch(e){
-      console.error(e);
-      toast('목록 불러오기 실패: ' + (e.message||e.code));
     }
+    goTo('manageView');
   }
-  function closeManage(){ manageDialog.close(); myList.innerHTML=''; }
 
-  async function openAdmin(target){
-    adminTargetName.textContent = target;
-    const isSuper = state.role==='mmaster';
-    adminAnonHint.innerHTML = isSuper ? '작성자 표시 <span class="hl">(mMaster)</span>' : '작성자 숨김 <span class="hl">(Master)</span>';
+  // ===== 뷰: 관리자 제목 목록 =====
+  async function openAdminList(target){
+    $('#adminTargetName').textContent = target;
     try{
-      const all = await store.listAllTo(target);
-      adminList.innerHTML='';
-      if(all.length===0){
-        adminList.innerHTML = '<div class="center muted item">아직 글이 없습니다.</div>';
+      adminCurrentList = await store.listAllTo(target);
+      const box = $('#adminTitleList'); box.innerHTML='';
+      if(adminCurrentList.length===0){
+        box.innerHTML='<div class="item sub" style="text-align:center">아직 글이 없습니다.</div>';
       }else{
-        for(const p of all){
-          const date = new Date(toMillis(p.updatedAt) || toMillis(p.createdAt) || Date.now());
-          const authorLabel = isSuper ? `<span class="warn">작성자: ${p.authorName || '알수없음'}</span>` : `<span class="muted">작성자: 익명</span>`;
-          const item = document.createElement('div');
-          item.className='item';
-          item.innerHTML = `
-            <b>${p.title || '(제목 없음)'}</b>
-            <div class="muted" style="font-size:12px; margin-bottom:8px">${authorLabel} · ${new Date(date).toLocaleString()}</div>
-            <div style="white-space:pre-wrap">${p.content || ''}</div>
-          `;
-          adminList.appendChild(item);
-        }
+        adminCurrentList.forEach(p=>{
+          const el=document.createElement('div'); el.className='item';
+          el.innerHTML=`<button class="ghost" data-id="${p.id}" style="text-align:left; width:100%; font-weight:700">${p.title||'(제목 없음)'}</button>`;
+          el.querySelector('button').onclick=()=>openAdminRead(p.id);
+          box.appendChild(el);
+        });
       }
-      adminDialog.showModal();
-    }catch(e){
-      console.error(e);
-      toast('관리자 열람 실패: ' + (e.message||e.code));
-    }
+      goTo('adminListView');
+    }catch(e){ toast('관리자 열람 실패: '+(e.message||e.code)); }
   }
-  function closeAdmin(){ adminDialog.close(); adminList.innerHTML=''; }
 
-  // ========== 이벤트 ==========
-  document.getElementById('enterBtn').addEventListener('click', async ()=>{
-    const nameRaw = (document.getElementById('nameInput').value || '').trim();
-    if(!nameRaw){ toast('이름을 입력해 주세요'); return; }
-
-    state.role = roleOf(nameRaw);
-    store = new Store(window.FIREBASE_CONFIG);
-
+  // ===== 뷰: 관리자 단일 글 크게 보기 =====
+  async function openAdminRead(paperId){
     try{
-      await store.signIn(nameRaw);
-      await store.ensurePerson(nameRaw);
-      state.user = { name: nameRaw };
+      const p = await store.getPaper(paperId);
+      adminCurrentPaper = p;
+      $('#adminReadTitle').textContent = p.title||'(제목 없음)';
+      $('#adminReadMeta').textContent = formatDT(toMillis(p.updatedAt)||toMillis(p.createdAt));
+      $('#adminReadContent').textContent = p.content||'';
+      goTo('adminReadView');
+    }catch(e){ toast('글을 불러오지 못했습니다: '+(e.message||e.code)); }
+  }
 
-      // UI 전환
-      loginEl.classList.add('hidden');
-      mainEl.classList.remove('hidden');
-      applyRoleUI();
-      statusArea.innerHTML = `백엔드: <b>Firestore</b> 연결됨 · <span class="muted">인증 없음(지인용)</span>`;
-
-      // 실시간 목록
-      store.onPeopleChanged((list)=>{ peopleCache = list; refreshPeople(); });
-
-      toast('입장했습니다.');
-    }catch(e){
-      console.error(e);
-      toast('입장 실패: ' + (e.message||e.code));
-    }
-  });
-
-  document.getElementById('logoutBtn').addEventListener('click', async ()=>{
-    if(store){ await store.signOut().catch(()=>{}); }
-    location.reload();
-  });
-
-  document.getElementById('filterInput').addEventListener('input', (e)=>{ state.filter = e.target.value; refreshPeople(); });
-
-  // mMaster 전용: 글+참가자 전체 초기화
-  document.getElementById('resetBtn').addEventListener('click', async ()=>{
-    if(state.role!=='mmaster') return;
-    const phrase = '전체 초기화';
-    const input = prompt(`정말 모든 글과 참가자 목록을 삭제할까요?\n되돌릴 수 없습니다!\n확인 문구를 입력하세요: ${phrase}`);
-    if(input!==phrase){ toast('취소되었습니다.'); return; }
+  // ===== 초기화 및 이벤트 =====
+  (function init(){
+    // Firebase
     try{
-      const {papers, participants} = await store.resetAll();
-      toast(`초기화 완료: 글 ${papers}건 · 참가자 ${participants}명 삭제`);
+      store = new Store(window.FIREBASE_CONFIG);
+      $('#statusArea').innerHTML = `백엔드: <b>Firestore</b> 연결 준비 · <span class="sub">인증 없음(지인용)</span>`;
     }catch(e){
+      $('#statusArea').innerHTML = '<span style="color:#b91c1c">Firebase 초기화 실패</span>';
       console.error(e);
-      toast('초기화 중 오류: ' + (e.message||e.code));
     }
-  });
 
-  // 저장
-  document.getElementById('savePaperBtn').addEventListener('click', async ()=>{
-    const title = (document.getElementById('paperTitle').value||'').trim();
-    const content = (document.getElementById('paperContent').value||'').trim();
-    if(!currentTarget){ toast('대상이 없습니다.'); return; }
-    if(!title || !content){ toast('제목과 내용을 입력해 주세요'); return; }
-    try{
-      if(editingPaperId){
-        await store.updatePaper(editingPaperId, {title, content});
-        toast('수정되었습니다.');
-      }else{
-        await store.createPaper({to: currentTarget, authorName: state.user.name, title, content});
-        toast('저장되었습니다.');
-      }
-      closeWrite();
-    }catch(e){
-      console.error(e);
-      toast('저장 중 오류: ' + (e.message||e.code));
-    }
-  });
+    // 입장
+    $('#enterBtn').addEventListener('click', async ()=>{
+      const name = ($('#nameInput').value||'').trim();
+      if(!name){ toast('이름을 입력해 주세요'); return; }
+      state.role = roleOf(name);
+      try{
+        await store.signIn(name);
+        await store.ensurePerson(name);
+        state.user = { name };
+        applyRoleUI();
+        // 실시간 참가자/글 반영
+        store.onPeopleChanged(list=>{ peopleCache=list; refreshPeople(); });
+        // 뷰 이동
+        goTo('mainView');
+        toast('입장했습니다.');
+      }catch(e){ console.error(e); toast('입장 실패: '+(e.message||e.code)); }
+    });
+
+    // 메인 상단 버튼들
+    $('#logoutBtn').addEventListener('click', async ()=>{ try{ await store.signOut(); }catch{} location.reload(); });
+    $('#filterInput').addEventListener('input', e=>{ state.filter=e.target.value; refreshPeople(); });
+    $('#resetBtn').addEventListener('click', async ()=>{
+      if(state.role!=='mmaster') return;
+      const phrase='전체 초기화';
+      const input=prompt(`정말 모든 글과 참가자 목록을 삭제할까요?\n되돌릴 수 없습니다!\n확인 문구: ${phrase}`);
+      if(input!==phrase){ toast('취소되었습니다.'); return; }
+      try{ const {papers,participants}=await store.resetAll(); toast(`초기화 완료: 글 ${papers} · 참가자 ${participants}`); }
+      catch(e){ toast('초기화 중 오류: '+(e.message||e.code)); }
+    });
+
+    // 뒤로가기 공통
+    $('#backFromMain').addEventListener('click', async ()=>{ // 메인에서도 뒤로가기를 원하셔서 → 로그인으로
+      try{ await store.signOut(); }catch{} goTo('loginView'); stack.length=0;
+    });
+    $('#backWrite').addEventListener('click', goBack);
+    $('#cancelWrite').addEventListener('click', goBack);
+    $('#backManage').addEventListener('click', goBack);
+    $('#backAdminList').addEventListener('click', goBack);
+    $('#backAdminRead').addEventListener('click', goBack);
+
+    // 저장
+    $('#savePaperBtn').addEventListener('click', async ()=>{
+      const title=($('#paperTitle').value||'').trim();
+      const content=($('#paperContent').value||'').trim();
+      if(!currentTarget){ toast('대상이 없습니다.'); return; }
+      if(!title||!content){ toast('제목과 내용을 입력해 주세요'); return; }
+      try{
+        if(editingPaperId){ await store.updatePaper(editingPaperId,{title,content}); toast('수정되었습니다.'); }
+        else{ await store.createPaper({to:currentTarget, authorName: state.user.name, title, content}); toast('저장되었습니다.'); }
+        goBack();
+      }catch(e){ toast('저장 중 오류: '+(e.message||e.code)); }
+    });
+  })();
   </script>
 </body>
 </html>
