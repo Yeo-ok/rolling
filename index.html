@@ -189,11 +189,13 @@
             <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             뒤로가기
           </button>
-        <div class="h"><span id="adminTargetName"></span>님에게 쓰인 글 (제목만)</div>
+          <div class="h"><span id="adminTargetName"></span>님에게 쓰인 글 (제목만)</div>
           <div></div>
         </div>
         <div class="content">
-          <div class="sub" style="margin-bottom:8px">요청에 따라 <b>제목만 표시</b>합니다. 제목을 누르면 큰 화면으로 내용이 열립니다.</div>
+          <div class="sub" style="margin-bottom:8px">
+            • 목록은 <b>제목만</b> 표시합니다. 제목을 누르면 큰 화면으로 열립니다.
+          </div>
           <div id="adminTitleList" class="list"></div>
         </div>
       </div>
@@ -259,7 +261,6 @@
   // ===== Firestore (무인증) =====
   class Store {
     constructor(cfg){
-      // SDK 로드/중복 초기화 가드
       if(!window.firebase || !firebase.initializeApp){
         throw new Error('Firebase SDK가 아직 로드되지 않았습니다.');
       }
@@ -326,7 +327,6 @@
       return {id:ref.id, to, authorName, title, content};
     }
     async listMyPapersTo(to, authorName){
-      // 인덱스 없이 동작(정렬은 클라이언트)
       const snap = await this.colPapers().where('to','==',to).where('authorName','==',authorName).get();
       const arr = snap.docs.map(d=>({id:d.id, ...d.data()}));
       arr.sort((a,b)=> (toMillis(b.updatedAt)||toMillis(b.createdAt)) - (toMillis(a.updatedAt)||toMillis(a.createdAt)));
@@ -365,9 +365,6 @@
   let store=null, currentTarget=null, editingPaperId=null, peopleCache=[], adminCurrentList=[], adminCurrentPaper=null;
 
   const statusArea = $('#statusArea');
-  const loginEl = $('#loginView'); const mainEl = $('#mainView');
-  const writeEl = $('#writeView'); const manageEl = $('#manageView');
-  const adminListEl = $('#adminListView'); const adminReadEl = $('#adminReadView');
 
   // ===== 공통 UI =====
   function roleOf(name){ if(name==='Master') return 'master'; if(name==='mMaster') return 'mmaster'; return 'user'; }
@@ -375,7 +372,8 @@
 
   function applyRoleUI(){
     $('#hello').innerHTML = `<span class="online-dot"></span><b>${state.user?.name}</b> 님 환영합니다!`;
-    $('#roleBadge').textContent = state.role==='master' ? '관리자' : state.role==='mmaster' ? '최대 관리자' : '일반 사용자';
+    // UI에는 역할 이름 노출 최소화 (둘 다 '관리자'로 표기)
+    $('#roleBadge').textContent = isAdmin() ? '관리자' : '일반 사용자';
     $('#resetBtn').classList.toggle('hidden', state.role!=='mmaster');
   }
 
@@ -478,8 +476,13 @@
     try{
       const p = await store.getPaper(paperId);
       adminCurrentPaper = p;
+      const showAuthor = (state.role==='mmaster'); // 최고 권한만 작성자 표시
+      const metaParts = [];
+      if(showAuthor) metaParts.push(`작성자: ${p.authorName || '알 수 없음'}`);
+      metaParts.push(formatDT(toMillis(p.updatedAt)||toMillis(p.createdAt)));
+
       $('#adminReadTitle').textContent = p.title||'(제목 없음)';
-      $('#adminReadMeta').textContent = formatDT(toMillis(p.updatedAt)||toMillis(p.createdAt));
+      $('#adminReadMeta').textContent = metaParts.join(' · ');
       $('#adminReadContent').textContent = p.content||'';
       goTo('adminReadView');
     }catch(e){ toast('글을 불러오지 못했습니다: '+(e.message||e.code)); }
@@ -487,7 +490,6 @@
 
   // ===== 초기화 및 이벤트 (SDK 로드 이후) =====
   function initApp(){
-    // Firebase 준비
     try{
       if (!window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.apiKey) {
         throw new Error('FIREBASE_CONFIG 누락 또는 잘못된 설정');
@@ -497,10 +499,9 @@
     }catch(e){
       console.error(e);
       $('#statusArea').innerHTML = `<span style="color:#b91c1c">Firebase 초기화 실패:</span> <span class="sub">${e.message || e.code || '알 수 없는 오류'}</span>`;
-      return; // 이후 바인딩 중단
+      return;
     }
 
-    // 입장
     $('#enterBtn').addEventListener('click', async ()=>{
       const name = ($('#nameInput').value||'').trim();
       if(!name){ toast('이름을 입력해 주세요'); return; }
@@ -510,15 +511,12 @@
         await store.ensurePerson(name);
         state.user = { name };
         applyRoleUI();
-        // 실시간 참가자/글 반영
         store.onPeopleChanged(list=>{ peopleCache=list; refreshPeople(); });
-        // 뷰 이동
         goTo('mainView');
         toast('입장했습니다.');
       }catch(e){ console.error(e); toast('입장 실패: '+(e.message||e.code)); }
     });
 
-    // 메인 상단 버튼들
     $('#logoutBtn').addEventListener('click', async ()=>{ try{ await store.signOut(); }catch{} location.reload(); });
     $('#filterInput').addEventListener('input', e=>{ state.filter=e.target.value; refreshPeople(); });
     $('#resetBtn').addEventListener('click', async ()=>{
