@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>롤링페이퍼</title>
+  <title>롤링페이퍼 (밝은테마 · 권한없이접속 · 팝업없음)</title>
   <style>
     :root{
       --bg:#ffffff; --text:#111827; --muted:#6b7280;
@@ -26,7 +26,6 @@
       background-attachment: fixed;
       overflow-x:hidden;
     }
-    /* 살짝 움직이는 배경 조명 */
     @keyframes floatGlow {
       0% { filter:saturate(110%) brightness(102%); }
       50%{ filter:saturate(120%) brightness(105%); }
@@ -84,7 +83,6 @@
     .toast.show{opacity:1; transform: translateX(-50%) translateY(0)}
     .role-badge{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid var(--border); color:#1f2937; background:#f3f4f6}
     .online-dot{width:8px; height:8px; border-radius:50%; background:var(--ok); display:inline-block; margin-right:6px}
-    /* Back 버튼 */
     .back{
       display:inline-flex; align-items:center; gap:8px; background:#fff; color:#111;
       border:1px solid var(--border); border-radius:10px; padding:8px 12px; cursor:pointer;
@@ -94,24 +92,17 @@
     /* ====== 관리자 상세 전광판 스타일 ====== */
     .big .content{display:flex; justify-content:center}
     .reader{max-width:min(1400px, 94vw); margin:2vh auto 4vh; text-align:center}
-    /* 제목은 적당히 크고 */
-    .big h1{
-      font-size:clamp(20px, 3.6vw, 44px);
-      margin:0 0 8px 0; line-height:1.2; letter-spacing:.4px;
-    }
+    .big h1{font-size:clamp(20px, 3.6vw, 44px); margin:0 0 8px 0; line-height:1.2; letter-spacing:.4px;}
     .big .meta{color:var(--muted); margin-bottom:18px; font-size:clamp(12px,1.6vw,16px)}
-    /* 내용은 제목보다 훨~씬 크게 (전광판 느낌) */
     .big .body{
-      font-size:clamp(28px, 6.8vw, 96px);  /* ← 내용이 더 큼 */
+      font-size:clamp(28px, 6.8vw, 96px);  /* 내용이 제목보다 훨씬 큼 */
       line-height:1.25;
       white-space:pre-wrap;
       letter-spacing:.3px;
       text-align:center;
       margin-top:10px;
-      /* 은은한 텍스트 그림자로 가독성 + 전광판 느낌 */
       text-shadow: 0 1px 0 rgba(255,255,255,.6), 0 6px 20px rgba(37,99,235,.08);
     }
-    /* 상세 카드만 부드러운 그라데이션 배경 */
     #adminReadView .card{
       background:
         radial-gradient(900px 600px at 20% 0%, #eef2ff 0%, transparent 60%),
@@ -306,6 +297,7 @@
   };
 
   // ===== Firestore (무인증) =====
+  let store = null; // ★ 전역 인스턴스
   class Store {
     constructor(cfg){
       if(!window.firebase || !firebase.initializeApp){
@@ -320,7 +312,6 @@
     _id(){ return (crypto.randomUUID?.() ?? (Math.random().toString(36).slice(2)+Date.now().toString(36))); }
     colParticipants(){ return this.db.collection('participants'); }
     colPapers(){ return this.db.collection('papers'); }
-
     async signIn(name){
       this.name = name;
       if(!['Master','mMaster'].includes(name)){
@@ -339,7 +330,6 @@
       }, {merge:true});
     }
     async signOut(){ await this._presence(false); }
-
     onPeopleChanged(cb){
       const update = async ()=>{
         const [pSnap, papersSnap] = await Promise.all([ this.colParticipants().get(), this.colPapers().get() ]);
@@ -357,14 +347,12 @@
       this.colParticipants().onSnapshot(update);
       this.colPapers().onSnapshot(update);
     }
-
     async ensurePerson(name){
       const d = await this.colParticipants().doc(name).get();
       if(!d.exists && !['Master','mMaster'].includes(name)){
         await this.colParticipants().doc(name).set({name, online:false, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
       }
     }
-
     async createPaper({to, authorName, title, content}){
       const ref = await this.colPapers().add({
         to, authorName, authorUid:this.uid, title, content,
@@ -393,8 +381,7 @@
       await this.colPapers().doc(id).update({...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp()});
     }
     async deletePaper(id){ await this.colPapers().doc(id).delete(); }
-
-    async resetAll(){ // 글 + 참가자 전체 삭제
+    async resetAll(){
       let p=0,u=0;
       while(true){
         const s=await this.colPapers().limit(450).get(); if(s.empty) break;
@@ -408,9 +395,8 @@
     }
   }
 
-  // ===== 전역 =====
-  let store=null, currentTarget=null, editingPaperId=null, peopleCache=[];
-
+  // ===== 전역(기타) =====
+  let currentTarget=null, editingPaperId=null, peopleCache=[];
   function roleOf(name){ if(name==='Master') return 'master'; if(name==='mMaster') return 'mmaster'; return 'user'; }
   const isAdmin = ()=> state.role==='master' || state.role==='mmaster';
 
@@ -514,7 +500,7 @@
   async function openAdminRead(paperId){
     try{
       const p = await store.getPaper(paperId);
-      const showAuthor = (state.role==='mmaster'); // 최고 권한만 작성자 표시
+      const showAuthor = (state.role==='mmaster');
       const metaParts = [];
       if(showAuthor) metaParts.push(`작성자: ${p.authorName || '알 수 없음'}`);
       metaParts.push(formatDT(toMillis(p.updatedAt)||toMillis(p.createdAt)));
@@ -531,7 +517,9 @@
       if (!window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.apiKey) {
         throw new Error('FIREBASE_CONFIG 누락 또는 잘못된 설정');
       }
-      window.store = new Store(window.FIREBASE_CONFIG);
+      // ★ 전역 store에 실제 인스턴스 할당 (버그 수정)
+      store = new Store(window.FIREBASE_CONFIG);
+      window.store = store; // 디버깅/콘솔용
       document.getElementById('statusArea').innerHTML = `백엔드: <b>Firestore</b> 연결 준비 · <span class="sub">인증 없음(지인용)</span>`;
     }catch(e){
       console.error(e);
@@ -539,7 +527,9 @@
       return;
     }
 
+    // 입장
     document.getElementById('enterBtn').addEventListener('click', async ()=>{
+      if(!store){ toast('백엔드 초기화 실패. 새로고침 해주세요.'); return; }
       const name = (document.getElementById('nameInput').value||'').trim();
       if(!name){ toast('이름을 입력해 주세요'); return; }
       state.role = roleOf(name);
@@ -554,6 +544,7 @@
       }catch(e){ console.error(e); toast('입장 실패: '+(e.message||e.code)); }
     });
 
+    // 메인 상단 버튼들
     document.getElementById('logoutBtn').addEventListener('click', async ()=>{ try{ await store.signOut(); }catch{} location.reload(); });
     document.getElementById('filterInput').addEventListener('input', e=>{ state.filter=e.target.value; refreshPeople(); });
     document.getElementById('resetBtn').addEventListener('click', async ()=>{
@@ -575,6 +566,7 @@
 
     // 저장
     document.getElementById('savePaperBtn').addEventListener('click', async ()=>{
+      if(!store){ toast('백엔드 초기화 실패. 새로고침 해주세요.'); return; }
       const title=(document.getElementById('paperTitle').value||'').trim();
       const content=(document.getElementById('paperContent').value||'').trim();
       if(!currentTarget){ toast('대상이 없습니다.'); return; }
