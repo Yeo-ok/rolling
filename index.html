@@ -67,10 +67,18 @@
       border:1px solid var(--border); border-radius:10px; padding:8px 12px; cursor:pointer;
     }
     .back svg{width:18px; height:18px}
-    /* 큰 글 보기 */
-    .big h1{font-size:28px; margin:0 0 10px 0}
-    .big .meta{color:var(--muted); margin-bottom:16px}
-    .big .body{font-size:18px; line-height:1.8; white-space:pre-wrap}
+    /* 큰 글 보기(전광판 느낌) */
+    .big .content{display:flex; justify-content:center}
+    .reader{max-width:1000px; margin:0 auto; text-align:center}
+    .big h1{font-size:clamp(28px, 6vw, 64px); margin:0 0 10px 0}
+    .big .meta{color:var(--muted); margin-bottom:16px; font-size:clamp(12px,1.8vw,16px)}
+    .big .body{
+      font-size:clamp(18px, 3.2vw, 36px);
+      line-height:1.8;
+      white-space:pre-wrap;
+      letter-spacing:.2px;
+      text-align:center;
+    }
   </style>
 
   <!--
@@ -213,9 +221,11 @@
           <div></div>
         </div>
         <div class="content">
-          <h1 id="adminReadTitle"></h1>
-          <div class="meta" id="adminReadMeta"></div>
-          <div class="body" id="adminReadContent"></div>
+          <div class="reader">
+            <h1 id="adminReadTitle"></h1>
+            <div class="meta" id="adminReadMeta"></div>
+            <div class="body" id="adminReadContent"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -361,10 +371,8 @@
     }
   }
 
-  // ===== 전역 변수 & 요소 =====
+  // ===== 전역 변수 =====
   let store=null, currentTarget=null, editingPaperId=null, peopleCache=[], adminCurrentList=[], adminCurrentPaper=null;
-
-  const statusArea = $('#statusArea');
 
   // ===== 공통 UI =====
   function roleOf(name){ if(name==='Master') return 'master'; if(name==='mMaster') return 'mmaster'; return 'user'; }
@@ -488,7 +496,7 @@
     }catch(e){ toast('글을 불러오지 못했습니다: '+(e.message||e.code)); }
   }
 
-  // ===== 초기화 및 이벤트 (SDK 로드 이후) =====
+  // ===== 초기화 및 이벤트 =====
   function initApp(){
     try{
       if (!window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.apiKey) {
@@ -502,6 +510,7 @@
       return;
     }
 
+    // 입장
     $('#enterBtn').addEventListener('click', async ()=>{
       const name = ($('#nameInput').value||'').trim();
       if(!name){ toast('이름을 입력해 주세요'); return; }
@@ -517,6 +526,7 @@
       }catch(e){ console.error(e); toast('입장 실패: '+(e.message||e.code)); }
     });
 
+    // 메인 상단 버튼들
     $('#logoutBtn').addEventListener('click', async ()=>{ try{ await store.signOut(); }catch{} location.reload(); });
     $('#filterInput').addEventListener('input', e=>{ state.filter=e.target.value; refreshPeople(); });
     $('#resetBtn').addEventListener('click', async ()=>{
