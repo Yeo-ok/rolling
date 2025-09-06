@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>롤링페이퍼 - 1차 프로토타입 (단일 파일)</title>
+  <title>롤링페이퍼 - 실시간 버전 (Firestore 전용)</title>
   <style>
     :root{
       --bg:#0f1226;
@@ -110,16 +110,51 @@
   </style>
 
   <!--
-  "롤링페이퍼" 1차 결과물 (단일 HTML 파일)
-  - 기본은 브라우저 로컬 모드(localStorage + BroadcastChannel)로 동작 → 같은 브라우저 여러 탭에서 동시 접속 테스트 가능
-  - 실사용(여러 기기 동시 접속)하려면 아래 FIREBASE_CONFIG만 채우면 실시간 백엔드(Firestore) 모드로 자동 전환됩니다.
-  - 예약 이름: "Master"(관리자, 익명 열람) / "mMaster"(최대관리자, 작성자 표시 포함 열람)
+  "롤링페이퍼" 실시간 버전 (단일 HTML + Firestore 전용)
 
-  ⚠️ 보안/권한: 이 파일은 프론트엔드만 포함합니다. Firestore 연결 시 관리자 권한은 보안 규칙에서 통제하세요.
-  예시 규칙은 파일 하단 주석 참고.
+  ✅ 요구사항
+  - 로컬모드 제거: 반드시 Firebase Firestore를 설정해야 동작
+  - 관리자 이름(Master, mMaster) 안내 문구는 UI에서 숨김
+  - 관리자(Master): 전체 열람(작성자 익명)
+  - 최대관리자(mMaster): 전체 열람 + 작성자 표시 + "전체 초기화(글)" 버튼
+  - 서로 다른 컴퓨터/브라우저에서 실시간 반영
+
+  ⚠️ 보안 중요
+  - 프런트엔드만으로는 "이름"만으로 진짜 관리자인지 확인할 수 없습니다.
+  - Firestore 보안 규칙에서 "관리자 UID 화이트리스트(admins/{uid})"를 사용하세요.
+  - mMaster로 로그인 시 상단에 보이는 UID를 Firestore Console의 `admins/{uid}` 문서로 추가하면
+    관리자 권한이 활성화됩니다. (Master도 동일)
+
+  ── 권장 Firestore 규칙(요약) ─────────────────────────────────────────────
+  rules_version = '2';
+  service cloud.firestore {
+    match /databases/{database}/documents {
+      function isAdmin() {
+        return request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      }
+      match /papers/{paperId} {
+        allow create: if request.auth != null
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.to != request.resource.data.authorName;
+        allow read: if request.auth != null
+          && (resource.data.authorUid == request.auth.uid || isAdmin());
+        allow update, delete: if request.auth != null
+          && (resource.data.authorUid == request.auth.uid || isAdmin());
+      }
+      match /participants/{name} {
+        allow read: if true;
+        allow write: if request.auth != null;
+      }
+      match /admins/{uid} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false; // Console/서버에서만 관리
+      }
+    }
+  }
+  ──────────────────────────────────────────────────────────────────────────
   -->
 
-  <!-- Firebase SDK (선택 사항: Firestore 사용 시 필요) -->
+  <!-- Firebase SDK (필수) -->
   <script defer src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
@@ -130,8 +165,8 @@
       <div class="logo">
         <i></i>
         <div>
-          <div><b>롤링페이퍼</b> <span class="tag">1차 프로토타입</span></div>
-          <div class="sub">이름으로 접속 · 다른 사람에게만 작성 · 내 글만 열람/수정/삭제 · 관리자 열람 모드</div>
+          <div><b>롤링페이퍼</b> <span class="tag">실시간</span></div>
+          <div class="sub">이름으로 접속 · 다른 사람에게만 작성 · 내 글만 열람/수정/삭제 · 관리자 열람</div>
         </div>
       </div>
       <div id="statusArea" class="sub"></div>
@@ -140,32 +175,15 @@
     <!-- 로그인 카드 -->
     <section id="login" class="card login">
       <div class="h">입장하기</div>
-      <div class="sub" style="margin-top:6px">본인 이름을 입력해 주세요. (특수: <span class="role-badge">Master</span>, <span class="role-badge">mMaster</span>)</div>
       <div class="section">
         <div class="row">
-          <input id="nameInput" type="text" placeholder="예) 홍길동 / Master / mMaster" maxlength="24" />
+          <input id="nameInput" type="text" placeholder="이름을 입력하세요" maxlength="24" />
           <button id="enterBtn">입장</button>
         </div>
         <div class="note" style="margin-top:12px">
-          • 같은 이름이 이미 사용 중이면 다른 표기로 접속해 주세요.<br/>
-          • 데모는 <b>로컬 모드</b>로 실행됩니다. 여러 기기 동시 사용은 <b>Firebase 설정</b>을 추가하세요 (아래 설정).<br/>
+          • <b>필수:</b> Firebase 프로젝트 연결이 필요합니다. 이 파일 하단의 <code>FIREBASE_CONFIG</code>를 설정하세요.<br/>
+          • GitHub Pages에서 사용 시, Authentication의 Authorized domains에 <code>yourname.github.io</code>를 추가하세요.
         </div>
-        <details style="margin-top:12px">
-          <summary class="muted">Firebase 연결(선택) – 이 파일 안에서 바로 설정</summary>
-          <div class="k" style="margin-top:8px">
-            &lt;script&gt;<br/>
-            &nbsp;&nbsp;window.FIREBASE_CONFIG = {<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;// TODO: 아래를 본인 프로젝트 값으로 교체하세요<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;apiKey: "YOUR_API_KEY",<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;authDomain: "YOUR_PROJECT.firebaseapp.com",<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;projectId: "YOUR_PROJECT_ID",<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;storageBucket: "YOUR_PROJECT.appspot.com",<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;messagingSenderId: "SENDER_ID",<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;appId: "APP_ID"<br/>
-            &nbsp;&nbsp;};<br/>
-            &lt;/script&gt;
-          </div>
-        </details>
       </div>
     </section>
 
@@ -173,12 +191,14 @@
     <section id="main" class="hidden">
       <div class="card section">
         <div class="topbar">
-          <div>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
             <span id="hello"></span>
             <span id="roleBadge" class="role-badge"></span>
+            <span id="adminUidLabel" class="role-badge hidden"></span>
           </div>
           <div class="search">
             <input id="filterInput" type="text" placeholder="이름 검색…" />
+            <button id="resetBtn" class="danger hidden">전체 초기화(글)</button>
             <button id="logoutBtn" class="outline">로그아웃</button>
           </div>
         </div>
@@ -243,7 +263,8 @@
     <div id="toast" class="toast"></div>
   </div>
 
-  <!-- 여기에 Firebase 설정을 붙여 넣으면 Firestore 모드로 자동 전환됩니다.
+  <!-- 필수: 여기에 Firebase 설정을 붙여 넣으세요. 설정이 없으면 앱이 동작하지 않습니다. -->
+  <!--
   <script>
     window.FIREBASE_CONFIG = {
       apiKey: "YOUR_API_KEY",
@@ -253,7 +274,8 @@
       messagingSenderId: "SENDER_ID",
       appId: "APP_ID"
     };
-  </script> -->
+  </script>
+  -->
 
   <script>
   // ========== 유틸리티 ==========
@@ -263,123 +285,26 @@
     const t = $('#toast'); t.textContent = msg; t.classList.add('show');
     setTimeout(()=>t.classList.remove('show'), ms);
   };
-  const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
   // ========== 상태 ==========
   const state = {
-    mode: 'local', // 'local' | 'firestore'
-    user: null, // { name, role: 'user'|'master'|'mmaster', uid? }
-    participants: [], // [{name, online, countTotal, countMine}]
+    user: null, // { name, role: 'user'|'master'|'mmaster', uid }
     filter: ''
   };
 
-  // ========== 데이터 저장소 인터페이스 ==========
-  class LocalStore {
-    constructor(){
-      this.bc = ('BroadcastChannel' in window) ? new BroadcastChannel('rp') : null;
-      window.addEventListener('storage', (e)=>{
-        if(e.key && e.key.startsWith('rp:')) this._emit();
-      });
-      if(this.bc){ this.bc.onmessage = ()=> this._emit(); }
-      this.handlers = new Set();
-      this.ensure();
-      // mark offline on unload
-      window.addEventListener('beforeunload', ()=>{
-        const u = getCurrentName();
-        if(!u) return;
-        const p = this._read('rp:participants', {});
-        if(p[u]){ p[u].online = false; p[u].lastActive = Date.now(); this._write('rp:participants', p); }
-      });
-    }
-    ensure(){
-      if(!localStorage.getItem('rp:participants')) this._write('rp:participants', {});
-      if(!localStorage.getItem('rp:papers')) this._write('rp:papers', {});
-    }
-    _read(key, def){ try{ return JSON.parse(localStorage.getItem(key)) || def }catch{ return def } }
-    _write(key, val){ localStorage.setItem(key, JSON.stringify(val)); if(this.bc) this.bc.postMessage({}) }
-    onChange(handler){ this.handlers.add(handler); }
-    _emit(){ this.handlers.forEach(h=>h()); }
-    async signIn(name){
-      const p = this._read('rp:participants', {});
-      if(!['Master','mMaster'].includes(name)){
-        // block duplicate online
-        const someone = Object.values(p).find(x => x.name === name && x.online);
-        if(someone && getCurrentName() !== name){
-          throw new Error('이미 사용 중인 이름입니다.');
-        }
-        p[name] = p[name] || {name, createdAt: Date.now(), online:false, lastActive: Date.now()};
-        p[name].online = true; p[name].lastActive = Date.now();
-        this._write('rp:participants', p);
-      }
-      return { uid: 'local-'+name, name };
-    }
-    async signOut(name){
-      const p = this._read('rp:participants', {});
-      if(p[name]){ p[name].online = false; p[name].lastActive = Date.now(); this._write('rp:participants', p); }
-    }
-    async getParticipants(){
-      const p = this._read('rp:participants', {});
-      const list = Object.values(p).sort((a,b)=> a.name.localeCompare(b.name,'ko'));
-      // counts
-      const papers = Object.values(this._read('rp:papers', {}));
-      const mine = getCurrentName();
-      for(const person of list){
-        const total = papers.filter(x=>x.to===person.name).length;
-        const own = papers.filter(x=>x.to===person.name && x.authorName===mine).length;
-        person.countTotal = total; person.countMine = own;
-      }
-      return list;
-    }
-    onParticipants(cb){
-      this.onChange(async ()=>{
-        const list = await this.getParticipants();
-        cb(list);
-      });
-    }
-    async ensurePerson(name){
-      const p = this._read('rp:participants', {});
-      if(!p[name]){ p[name] = {name, createdAt: Date.now(), online:false, lastActive: Date.now()}; this._write('rp:participants', p); }
-    }
-    async createPaper({to, authorName, title, content}){
-      const id = uid();
-      const papers = this._read('rp:papers', {});
-      papers[id] = {id, to, authorName, authorUid:'local-'+authorName, title, content, createdAt: Date.now(), updatedAt: Date.now()};
-      this._write('rp:papers', papers);
-      return papers[id];
-    }
-    async listMyPapersTo(to, authorName){
-      const papers = Object.values(this._read('rp:papers', {}));
-      return papers.filter(x=>x.to===to && x.authorName===authorName).sort((a,b)=>b.updatedAt-a.updatedAt);
-    }
-    async listAllTo(to){
-      const papers = Object.values(this._read('rp:papers', {}));
-      return papers.filter(x=>x.to===to).sort((a,b)=>b.updatedAt-a.updatedAt);
-    }
-    async updatePaper(id, {title, content}){
-      const papers = this._read('rp:papers', {});
-      if(!papers[id]) throw new Error('존재하지 않는 문서');
-      papers[id].title = title; papers[id].content = content; papers[id].updatedAt = Date.now();
-      this._write('rp:papers', papers);
-      return papers[id];
-    }
-    async deletePaper(id){
-      const papers = this._read('rp:papers', {});
-      delete papers[id]; this._write('rp:papers', papers);
-    }
-  }
-
+  // ========== Firestore Store (전용) ==========
   class FirestoreStore {
     constructor(config){
       this.app = firebase.initializeApp(config);
       this.db = firebase.firestore();
       this.auth = firebase.auth();
-      this.handlers = new Set();
       window.addEventListener('beforeunload', ()=>this._setPresence(false));
     }
     async signIn(name){
       const cred = await this.auth.signInAnonymously();
       this.uid = cred.user.uid;
       this.name = name;
+      // Master/mMaster는 참가자 목록에 노출하지 않음
       if(!['Master','mMaster'].includes(name)){
         await this.db.collection('participants').doc(name).set({
           name, online:true, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -400,29 +325,29 @@
       await this._setPresence(false);
       await this.auth.signOut();
     }
-    async getParticipants(){
-      const snap = await this.db.collection('participants').get();
-      const papers = await this.db.collection('papers').get();
-      const mine = this.name;
-      const arr = snap.docs.map(d=>({name:d.id, ...(d.data()||{})}));
-      for(const person of arr){
-        const total = papers.docs.filter(x=>x.data().to===person.name).length;
-        const own = papers.docs.filter(x=>x.data().to===person.name && x.data().authorName===mine).length;
-        person.countTotal = total; person.countMine = own;
-      }
-      return arr.sort((a,b)=> a.name.localeCompare(b.name,'ko'));
-    }
-    onParticipants(cb){
-      this.db.collection('participants').onSnapshot(async ()=>{
-        cb(await this.getParticipants());
-      });
-      this.db.collection('papers').onSnapshot(async ()=>{
-        cb(await this.getParticipants());
-      });
+    onParticipantsChanged(cb){
+      // participants와 papers 모두 감지하여 카운트 최신화
+      const update = async () => {
+        const [pSnap, allPapersSnap] = await Promise.all([
+          this.db.collection('participants').get(),
+          this.db.collection('papers').get(),
+        ]);
+        const mine = this.name;
+        const arr = pSnap.docs.map(d=>({name:d.id, ...(d.data()||{})}));
+        for(const person of arr){
+          const total = allPapersSnap.docs.filter(x=>x.data().to===person.name).length;
+          const own = allPapersSnap.docs.filter(x=>x.data().to===person.name && x.data().authorName===mine).length;
+          person.countTotal = total; person.countMine = own;
+        }
+        arr.sort((a,b)=> a.name.localeCompare(b.name,'ko'));
+        cb(arr);
+      };
+      this.db.collection('participants').onSnapshot(update);
+      this.db.collection('papers').onSnapshot(update);
     }
     async ensurePerson(name){
       const doc = await this.db.collection('participants').doc(name).get();
-      if(!doc.exists){
+      if(!doc.exists && !['Master','mMaster'].includes(name)){
         await this.db.collection('participants').doc(name).set({name, online:false, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
       }
     }
@@ -454,36 +379,51 @@
     async deletePaper(id){
       await this.db.collection('papers').doc(id).delete();
     }
-  }
-
-  // ========== 스토어 선택 ==========
-  let store = new LocalStore();
-  function isFirebaseReady(){
-    return window.FIREBASE_CONFIG && typeof FIREBASE_CONFIG.apiKey === 'string' && !FIREBASE_CONFIG.apiKey.includes('YOUR_');
-  }
-  window.addEventListener('load', ()=>{
-    try{
-      if(isFirebaseReady()){
-        state.mode = 'firestore';
-        store = new FirestoreStore(window.FIREBASE_CONFIG);
-        $('#statusArea').innerHTML = '백엔드: <b>Firestore</b> 연결됨';
-      }else{
-        $('#statusArea').innerHTML = '백엔드: <b>로컬 데모</b> (동일 브라우저 여러 탭 동시 테스트 가능)';
+    async resetAllPapers(){
+      // mMaster 전용: papers 전체 삭제 (배치 450개씩)
+      let total = 0;
+      while(true){
+        const snap = await this.db.collection('papers').limit(450).get();
+        if(snap.empty) break;
+        const batch = this.db.batch();
+        snap.docs.forEach(doc=> batch.delete(doc.ref));
+        await batch.commit();
+        total += snap.docs.length;
       }
-    }catch(e){
-      console.warn('Firebase init 실패, 로컬 모드로 전환', e);
-      state.mode = 'local'; store = new LocalStore();
-      $('#statusArea').innerHTML = '백엔드: <b>로컬 데모</b>';
+      return total;
     }
-  });
+  }
 
-  // ========== 로직 ==========
+  // ========== 앱 초기화 ==========
+  let store = null;
+  const statusArea = $('#statusArea');
+  function ensureFirebase(){
+    if(!(window.FIREBASE_CONFIG && typeof FIREBASE_CONFIG.apiKey === 'string')){
+      statusArea.innerHTML = '<span class="warn">오류:</span> Firebase 설정이 없습니다. 이 파일 하단의 <b>FIREBASE_CONFIG</b>를 채워주세요.';
+      $('#enterBtn').disabled = true;
+      return false;
+    }
+    try{
+      store = new FirestoreStore(window.FIREBASE_CONFIG);
+      statusArea.innerHTML = '백엔드: <b>Firestore</b> 연결 준비';
+      return true;
+    }catch(e){
+      console.error(e);
+      statusArea.innerHTML = '<span class="warn">Firebase 초기화 실패</span>';
+      return false;
+    }
+  }
+  window.addEventListener('load', ensureFirebase);
+
+  // ========== 로직/바인딩 ==========
   const loginEl = $('#login');
   const mainEl = $('#main');
   const helloEl = $('#hello');
   const roleBadge = $('#roleBadge');
   const peopleGrid = $('#peopleGrid');
   const filterInput = $('#filterInput');
+  const resetBtn = $('#resetBtn');
+  const adminUidLabel = $('#adminUidLabel');
 
   const writeDialog = $('#writeDialog');
   const paperTitle = $('#paperTitle');
@@ -502,10 +442,7 @@
 
   let editingPaperId = null;
   let currentTarget = null;
-
-  function getCurrentName(){ return localStorage.getItem('rp:me') || ''; }
-  function setCurrentName(n){ localStorage.setItem('rp:me', n); }
-  function clearCurrentName(){ localStorage.removeItem('rp:me'); }
+  let participantsCache = [];
 
   function roleOf(name){
     if(name==='Master') return 'master';
@@ -518,13 +455,22 @@
     const role = state.user?.role;
     helloEl.innerHTML = name ? `<span class="online-dot"></span><b>${name}</b> 님 환영합니다!` : '';
     roleBadge.textContent = role==='master' ? '관리자 모드' : role==='mmaster' ? '최대 관리자' : '일반 사용자';
+    // mMaster 전용 기능
+    if(role==='mmaster'){
+      resetBtn.classList.remove('hidden');
+      adminUidLabel.classList.remove('hidden');
+      adminUidLabel.textContent = `관리자 UID: ${state.user.uid}`;
+    }else{
+      resetBtn.classList.add('hidden');
+      adminUidLabel.classList.add('hidden');
+      adminUidLabel.textContent = '';
+    }
   }
 
   async function refreshPeople(){
-    let list = await store.getParticipants();
     // 필터
-    const f = (state.filter||'').trim();
-    if(f) list = list.filter(p=> p.name.toLowerCase().includes(f.toLowerCase()));
+    const f = (state.filter||'').trim().toLowerCase();
+    const list = participantsCache.filter(p => !f || p.name.toLowerCase().includes(f));
     // 렌더
     peopleGrid.innerHTML = '';
     if(list.length===0){
@@ -591,11 +537,11 @@
     }else{
       for(const p of mine){
         const item = document.createElement('div');
-        const date = new Date(p.updatedAt || p.createdAt || Date.now());
+        const date = new Date(p.updatedAt?.toDate?.() || p.updatedAt || p.createdAt?.toDate?.() || p.createdAt || Date.now());
         item.className = 'item';
         item.innerHTML = `
           <b>${p.title || '(제목 없음)'}</b>
-          <div class="muted" style="font-size:12px; margin-bottom:8px">${date.toLocaleString()}</div>
+          <div class="muted" style="font-size:12px; margin-bottom:8px">${new Date(date).toLocaleString()}</div>
           <div style="white-space:pre-wrap">${p.content || ''}</div>
           <div style="margin-top:8px; display:flex; gap:8px; justify-content:flex-end">
             <button class="outline" data-act="edit">수정</button>
@@ -608,7 +554,6 @@
             await store.deletePaper(p.id);
             toast('삭제되었습니다.');
             openManage(target); // 새로고침
-            refreshPeople();
           }
         };
         myList.appendChild(item);
@@ -629,12 +574,12 @@
     }else{
       for(const p of all){
         const item = document.createElement('div');
-        const date = new Date(p.updatedAt || p.createdAt || Date.now());
+        const date = new Date(p.updatedAt?.toDate?.() || p.updatedAt || p.createdAt?.toDate?.() || p.createdAt || Date.now());
         item.className='item';
         const authorLabel = isSuper ? `<span class="warn">작성자: ${p.authorName || '알수없음'}</span>` : `<span class="muted">작성자: 익명</span>`;
         item.innerHTML = `
           <b>${p.title || '(제목 없음)'}</b>
-          <div class="muted" style="font-size:12px; margin-bottom:8px">${authorLabel} · ${date.toLocaleString()}</div>
+          <div class="muted" style="font-size:12px; margin-bottom:8px">${authorLabel} · ${new Date(date).toLocaleString()}</div>
           <div style="white-space:pre-wrap">${p.content || ''}</div>
         `;
         adminList.appendChild(item);
@@ -646,20 +591,19 @@
 
   // 이벤트 바인딩
   $('#enterBtn').addEventListener('click', async ()=>{
+    if(!store){ toast('Firebase 설정을 먼저 넣어주세요.'); return; }
     const name = ($('#nameInput').value || '').trim();
     if(!name){ toast('이름을 입력해 주세요'); return; }
     try{
-      await store.signIn(name);
-      state.user = { name, role: roleOf(name) };
-      setCurrentName(name);
+      const {uid} = await store.signIn(name);
+      state.user = { name, role: roleOf(name), uid };
       loginEl.classList.add('hidden');
       mainEl.classList.remove('hidden');
       applyRoleUI();
-      await store.ensurePerson(name); // 이름도 목록에 보이게
-      // 구독
-      await refreshPeople();
-      store.onParticipants(async (list)=>{
-        state.participants = list;
+      await store.ensurePerson(name);
+      // 참가자/글 실시간 반영
+      store.onParticipantsChanged((list)=>{
+        participantsCache = list;
         refreshPeople();
       });
       toast('입장했습니다.');
@@ -670,12 +614,9 @@
   });
 
   $('#logoutBtn').addEventListener('click', async ()=>{
-    if(state.user?.name && state.mode==='firestore'){
+    if(state.user?.name){
       await store.signOut();
-    }else if(state.user?.name){
-      await store.signOut(state.user.name);
     }
-    clearCurrentName();
     location.reload();
   });
 
@@ -684,35 +625,19 @@
     refreshPeople();
   });
 
-  savePaperBtn.addEventListener('click', async ()=>{
-    const title = (paperTitle.value||'').trim();
-    const content = (paperContent.value||'').trim();
-    if(!currentTarget) return;
-    if(!title || !content){ toast('제목과 내용을 입력해 주세요'); return; }
+  // mMaster 전용: 전체 초기화(글)
+  resetBtn.addEventListener('click', async ()=>{
+    if(state.user?.role!=='mmaster') return;
+    const phrase = '초기화합니다';
+    const input = prompt(`정말 모든 작성 글을 삭제할까요?\n되돌릴 수 없습니다!\n확인 문구를 입력하세요: ${phrase}`);
+    if(input!==phrase){ toast('취소되었습니다.'); return; }
     try{
-      if(editingPaperId){
-        await store.updatePaper(editingPaperId, {title, content});
-        toast('수정되었습니다.');
-      }else{
-        await store.createPaper({to: currentTarget, authorName: state.user.name, title, content});
-        toast('저장되었습니다.');
-      }
-      closeWrite();
-      refreshPeople();
-      // 만약 관리 모달이 열려 있으면 갱신
-      if(manageDialog.open){ openManage(currentTarget); }
-      if(adminDialog.open){ openAdmin(currentTarget); }
+      const deleted = await store.resetAllPapers();
+      toast(`초기화 완료: ${deleted}건 삭제됨`);
+      // 리스트는 onSnapshot으로 자동 갱신
     }catch(e){
       console.error(e);
-      toast('저장 중 오류');
-    }
-  });
-
-  // 자동 로그인 복원
-  window.addEventListener('load', async ()=>{
-    const remembered = getCurrentName();
-    if(remembered){
-      $('#nameInput').value = remembered;
+      toast('초기화 중 오류');
     }
   });
   </script>
