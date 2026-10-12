@@ -14,7 +14,15 @@
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import{getDatabase,ref,push,set,serverTimestamp,get,query,orderByChild,limitToLast,onChildAdded}from"https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 // Firebase Console > 프로젝트 설정 > 웹 앱에서 config 값을 아래에 입력하세요.
-const firebaseConfig={apiKey:"YOUR_API_KEY",authDomain:"YOUR_PROJECT.firebaseapp.com",databaseURL:"https://YOUR_PROJECT-default-rtdb.firebaseio.com",projectId:"YOUR_PROJECT",storageBucket:"YOUR_PROJECT.firebasestorage.app",messagingSenderId:"YOUR_MESSAGING_SENDER_ID",appId:"YOUR_APP_ID"};
+const firebaseConfig = {
+  apiKey: "AIzaSyA2sTHW22VtoAIXd2P8b9Nift0c-WPSLdM",
+  authDomain: "rolling-7519c.firebaseapp.com",
+  databaseURL: "https://rolling-7519c-default-rtdb.firebaseio.com",
+  projectId: "rolling-7519c",
+  storageBucket: "rolling-7519c.firebasestorage.app",
+  messagingSenderId: "663780806800",
+  appId: "1:663780806800:web:f6f6f850fd926eeb42c815"
+};
 const configured=firebaseConfig.apiKey!=="YOUR_API_KEY"&&firebaseConfig.databaseURL&&!firebaseConfig.databaseURL.includes("YOUR_PROJECT");
 const $=s=>document.querySelector(s),isDisplay=new URLSearchParams(location.search).get("display")==="1",room=new URLSearchParams(location.search).get("room")||"main";
 if(isDisplay){$("#sender").classList.add("hidden");$("#display").classList.remove("hidden");document.title="실시간 메시지 화면"}else{const u=new URL(location.href);u.searchParams.set("display","1");u.searchParams.set("room",room);$("#displayLink").href=u.href;$("#displayLink").textContent=u.href;if(window.QRCode)new QRCode($("#qrcode"),{text:location.href.split("#")[0],width:190,height:190,colorDark:"#111",colorLight:"#fff",correctLevel:QRCode.CorrectLevel.M})}
